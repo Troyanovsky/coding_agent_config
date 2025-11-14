@@ -5,7 +5,7 @@ Given the AGNETS.md file in the current folder, check if any of the following fo
 2. Folder `~/.gemini`
     - Required file: `AGENTS.md`
 3. Folder `~/.qwen`
-    - Required file: `AGENTS.md`
+    - Required file: `QWEN.md`
 4. Folder `~/.codex`
     - Required file: `AGENTS.md`
 5. Folder `~/.iflow`

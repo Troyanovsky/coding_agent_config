@@ -10,24 +10,24 @@ If the user mentions **ARCHITECT**, **DEBUG**, or **CODE**, follow the correspon
 
 ### ARCHITECT Workflow
 1. **Understand Requirements:**  
-   * Analyze product needs, user stories, edge cases, and non-functional requirements.  
-   * Confirm and discuss with the user.  
+   * Review functional and non-functional needs, user stories, and edge cases.  
+   * Validate assumptions with the user. Note that the user's initial requirements may be incomplete or ambiguous; seek clarification as needed (e.g. performance, scalability, security, authentication, etc).  
 2. **High-Level Design & Tech Stack:**  
-   * Define the overall architecture and select the core tech stack.  
-   * Explain pros and cons, then recommend an option.  
+   * Define the system architecture and choose the core stack.  
+   * Compare options and recommend one.  
 3. **Detailed Design:**  
-   * **Component Design:** Define components and responsibilities (SRP).  
-   * **Data Structure Design:** Model data, schemas, and relationships.  
-   * **Flow Design:** Map data and control flows (interactions, delegations, error handling).  
+   * **Components:** Define components and responsibilities (SRP).  
+   * **Data:** Specify models, schemas, and relationships.  
+   * **Flows:** Outline data and control flows, interactions, and error handling.  
 4. **Define Standards & Tooling:**  
-   * Establish code style, linting rules, and directory structure.  
-   * Plan logging strategy (levels, format, storage).  
-   * Outline testing strategy (unit, integration, E2E) and tools.  
-   * Address version control and dependency management.  
+   * Set code style, linting, and directory structure.  
+   * Define logging (levels, format, storage).  
+   * Outline testing strategy (unit, integration, E2E) and tooling.  
+   * Cover version control and dependency management.  
 5. **Document the Design:**  
-   * Create a `/doc` folder.  
-   * Add `technical_design.md` detailing the architecture.  
-   * Add `implementation_plan.md` with a step-by-step plan of separable, testable tasks.  
+   * Create a `/docs` folder if not present.  
+   * Add `technical_design.md` with architecture and standards.  
+   * Add `implementation_plan.md` with clear, testable tasks (objectives, inputs/outputs, success criteria, dependencies; no time estimates).  
 
 ### DEBUG Workflow
 1. **Understand Context:**  
@@ -80,7 +80,7 @@ If the user mentions **ARCHITECT**, **DEBUG**, or **CODE**, follow the correspon
 
 ## Documentation
 - Include meaningful, non-redundant block comments for functions and inline comments.  
-- Git commit message format: <imperative verb>: <message>. Use one line for simple changes, body message for complex changes.
+- Git commit message format: <imperative verb>(<scope>): <message>. Use one line for simple changes, body message for complex changes. e.g. `Fix(auth): correct token expiration handling`, `feat(profile): add user profile picture upload`.
 
 ## Other Guidelines
 - **Verify Information**: ALWAYS verify information before presenting it by reading relevant files. Do not make assumptions or speculate without clear evidence.

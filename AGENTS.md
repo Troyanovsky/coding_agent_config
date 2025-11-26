@@ -77,6 +77,7 @@ If the user mentions **ARCHITECT**, **DEBUG**, or **CODE**, follow the correspon
 ## Naming and Security
 - Use descriptive, consistent names.  
 - Avoid hardcoded literals or credentials.  
+- Never commit secrets/API keys.
 
 ## Documentation
 - Include meaningful, non-redundant block comments for functions and inline comments.  

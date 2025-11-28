@@ -53,6 +53,7 @@ def main():
     targets_symlink = [
         (home / ".gemini", home / ".gemini" / "commands"),
         (home / ".qwen", home / ".qwen" / "commands"),
+        (home / ".iflow", home / ".iflow" / "commands"),
     ]
     
     target_claude_root = home / ".claude"

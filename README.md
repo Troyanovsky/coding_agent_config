@@ -1,6 +1,6 @@
 # Coding Agent Configuration
 
-This repository serves as a centralized source of truth for coding agent configurations, workflows, and custom commands. It is designed to maintain consistency across different AI coding assistants (Gemini, Qwen, Claude, etc.) by synchronizing a master `AGENTS.md` and a set of custom commands.
+This repository serves as a centralized source of truth for coding agent configurations, workflows, and custom commands. It is designed to maintain consistency across different AI coding assistants (Gemini, Qwen, Claude, iFlow, etc.) by synchronizing a master `AGENTS.md` and a set of custom commands.
 
 ## Structure
 
@@ -9,8 +9,12 @@ This repository serves as a centralized source of truth for coding agent configu
     - Code quality principles (DRY, KISS, SOLID).
     - Formatting, naming, and security guidelines.
     - Documentation standards.
-- **`commands/`**: A directory containing custom commands defined in TOML format.
-    - Each `.toml` file (e.g., `deep_dive.toml`) defines a command with a `description` and a `prompt`.
+- **`commands/`**: A directory containing custom commands defined in TOML format:
+    - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
+    - `git_commit.toml`: Generate Conventional Commits formatted messages
+    - `review_changes.toml`: Review changed files for bugs and issues
+    - `update_doc.toml`: Update documentation based on code changes
+    - Each `.toml` file defines a command with a `description` and a `prompt`.
 - **`sync_commands.py`**: A utility script to deploy these configurations to the respective agent directories in your home folder.
 
 ## Synchronization Script (`sync_commands.py`)

@@ -1,0 +1,10 @@
+description = "Update documentation based on code changes."
+prompt = """Review the specified documentation file to verify that it accurately reflects the current codebase. Update the documentation to fix errors and include relevant changes. Preserve the original structure and keep the content concise.
+
+Process:
+1. Read the existing documentation to understand its scope and intent.
+2. List files and directories to identify new or changed components.
+3. If a Git repository is present, use git commands to review relevant commit history to understand recent changes.
+4. Inspect up to 10 key files for deeper context.
+5. Update the documentation Markdown with clear structure and concise language.
+"""

@@ -81,7 +81,7 @@ If the user mentions **ARCHITECT**, **DEBUG**, or **CODE**, follow the correspon
 
 ## Documentation
 - Include meaningful, non-redundant block comments for functions and inline comments.  
-- Git commit message format: <imperative verb>(<scope>): <message>. Use one line for simple changes, body message for complex changes. e.g. `Fix(auth): correct token expiration handling`, `feat(profile): add user profile picture upload`.
+- Git commit message format: <type>(<scope>): <message>. Use one line for simple changes, body message for complex changes. e.g. `fix(auth): correct token expiration handling`, `feat(profile): add user profile picture upload`.
 
 ## Other Guidelines
 - **Verify Information**: ALWAYS verify information before presenting it by reading relevant files. Do not make assumptions or speculate without clear evidence.

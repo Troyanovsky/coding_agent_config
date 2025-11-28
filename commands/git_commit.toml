@@ -1,0 +1,17 @@
+description = "Generate a Conventional Commits formatted message."
+prompt = """1. Inspect the working tree.
+   - Identify all new and modified files.
+
+2. Determine commit boundaries.
+   - If any files may not belong in version control, STOP and ask the user.
+   - If changes should be split into multiple commits, STOP and ask the user how to group them.
+
+3. Stage changes.
+   - Stage all approved new and modified files.
+
+4. Commit.
+   - Create a commit using Conventional Commits format:
+     type(scope): short, imperative summary
+   - Valid types include: feat, fix, docs, style, refactor, test, chore.
+   - Include a commit body only if the changes are complex or require explanation.
+"""

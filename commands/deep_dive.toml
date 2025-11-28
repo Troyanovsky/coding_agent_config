@@ -1,0 +1,2 @@
+description = "Deep dive into an issue by inspecting relevant files."
+prompt = """Use the user’s description to guide a focused deep-dive of relevant files. Investigate methodically, validate assumptions against the content, and base conclusions on evidence."""

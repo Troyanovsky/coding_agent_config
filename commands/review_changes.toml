@@ -1,0 +1,2 @@
+description = "Review changed files for issues."
+prompt = """Review all changed files for bugs, edge cases, and unintended side effects. Check related code for collateral impact. Ensure tests are added or updated, all tests pass locally, and code follows project conventions."""

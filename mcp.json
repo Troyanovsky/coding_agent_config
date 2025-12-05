@@ -1,0 +1,28 @@
+{
+    "mcpServers": {
+        "context7": {
+            "httpUrl": "https://mcp.context7.com/mcp",
+            "headers": {
+                "Accept": "application/json, text/event-stream"
+            }
+        },
+        "figma-desktop": {
+            "url": "http://127.0.0.1:3845/mcp"
+        },
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "@playwright/mcp@latest"
+            ]
+        },
+        "chrome-devtools": {
+            "command": "npx",
+            "args": [
+                // if Google Antigravity
+                //"--browser-url=http://127.0.0.1:9222",
+                "-y",
+                "chrome-devtools-mcp@latest"
+            ]
+        }
+    }
+}

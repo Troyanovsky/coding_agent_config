@@ -1,0 +1,71 @@
+description = "Generate product & technical edge cases"
+
+prompt = """
+<goal>
+Generate a structured list of edge cases for the feature below, starting from high-level auth/flow scenarios down to detailed component states and interactions.
+</goal>
+
+<coverage>
+Think in layers. For each item below, list concrete edge cases (short bullet points), not general advice.
+
+1) High-level scenarios
+- Auth vs no auth: logged-in, logged-out, session expired, revoked access.
+- Roles / plans: admin vs regular, free vs paid, restricted roles.
+- New vs existing: first-time user, user with historical data.
+- Platforms / locales: web vs mobile, different regions if relevant.
+
+2) Core flows
+- Success / happy path:
+  - What “success” means and possible variants (full vs partial completion).
+- Failure flows:
+  - Input/validation errors.
+  - Backend errors: 4xx, 5xx, timeouts, dependency failures.
+  - Business rule failures: limits, quotas, policy blocks.
+- Recovery:
+  - Retry, undo/cancel, resume after refresh/reopen, resume after fixing input or network.
+
+3) Auth & security
+- No auth: anonymous access limits, upgrade/redirect paths.
+- Auth failures: missing/invalid/expired tokens, forced logout, password/SSO issues.
+- Authorization: forbidden actions, cross-tenant or cross-user data access attempts.
+- Region/privacy: restricted data by region, masked fields, consent not given.
+
+4) Data & state
+- Data volume: none/empty, small, very large datasets.
+- Data quality: inconsistent, corrupted, stale client cache vs fresh server values.
+- Time-based: expired entities (offers, links), timezone differences, scheduling near boundaries (day/month/year/DST).
+
+5) Component / UI / API states
+For key screens/components or endpoints, consider:
+- Initial/default.
+- Loading / in-progress.
+- Empty / no data.
+- Error (client-side and server-side).
+- Offline / no network / flaky network.
+- Overflow / extremes:
+  - Very long text, many items, huge numbers, large files.
+- Boundary inputs:
+  - Min/max length, special characters, emojis, different languages/scripts.
+  - Unsupported file types/sizes or invalid formats.
+
+6) Interactions
+- User behavior:
+  - Rapid clicks / double submit, spammy input, back/forward navigation.
+  - Refresh or close mid-flow, multiple tabs/windows/devices.
+- Cancellations:
+  - User cancels in the middle of long-running actions.
+- Concurrency:
+  - Two users editing same resource.
+  - Same user acting on same resource from multiple sessions.
+
+7) Technical / platform
+- Network:
+  - No connection, high latency, timeouts, partial responses, retry storms.
+- Dependencies:
+  - Third-party APIs down/slow, feature flags toggled during use.
+- Storage:
+  - Local storage/cookies disabled or full, server-side quota/rate limits.
+- Versioning:
+  - Old client with new API, new client with old API, partial rollouts.
+</coverage>
+"""

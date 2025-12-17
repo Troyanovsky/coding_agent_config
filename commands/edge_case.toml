@@ -13,6 +13,7 @@ Think in layers. For each item below, list concrete edge cases (short bullet poi
 - Roles / plans: admin vs regular, free vs paid, restricted roles.
 - New vs existing: first-time user, user with historical data.
 - Platforms / locales: web vs mobile, different regions if relevant.
+- Language / locale: different languages may enable/disable features, varying character sets, RTL vs LTR layouts.
 
 2) Core flows
 - Success / happy path:

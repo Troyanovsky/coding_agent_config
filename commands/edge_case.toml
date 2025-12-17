@@ -19,7 +19,7 @@ Think in layers. For each item below, list concrete edge cases (short bullet poi
 - Success / happy path:
   - What “success” means and possible variants (full vs partial completion).
 - Failure flows:
-  - Input/validation errors.
+  - Input/validation errors (e.g. format, extreme values, etc)
   - Backend errors: 4xx, 5xx, timeouts, dependency failures.
   - Business rule failures: limits, quotas, policy blocks.
 - Recovery:

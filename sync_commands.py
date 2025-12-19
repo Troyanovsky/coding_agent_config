@@ -70,7 +70,7 @@ def main():
                 
                 # Check if link/file already exists
                 if link_name.exists() or link_name.is_symlink():
-                    print(f"  Skipping {source_file.name}: already exists in {cmd_dir.name}")
+                    print(f"  Skipping {source_file.name}: symlink already exists in {cmd_dir.name}")
                     continue
                 
                 # Create symlink (absolute path for safety)

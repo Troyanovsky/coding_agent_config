@@ -10,11 +10,20 @@ This repository serves as a centralized source of truth for coding agent configu
     - Formatting, naming, and security guidelines.
     - Documentation standards.
 - **`commands/`**: A directory containing custom commands defined in TOML format:
+    - `architect.toml`: ARCHITECT a complete system architecture and implementation plan
+    - `debug.toml`: DEBUG software bugs
     - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
+    - `edge_case.toml`: Generate product & technical edge cases
     - `git_commit.toml`: Generate Conventional Commits formatted messages
+    - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
     - `review_changes.toml`: Review changed files for bugs and issues
     - `update_doc.toml`: Update documentation based on code changes
     - Each `.toml` file defines a command with a `description` and a `prompt`.
+- **`mcp.json`**: Configuration file for Model Context Protocol (MCP) servers, including:
+    - `context7`: HTTP-based MCP server for context management
+    - `figma-desktop`: Figma desktop integration via local HTTP endpoint
+    - `playwright`: Browser automation and testing capabilities
+    - `chrome-devtools`: Chrome DevTools integration for debugging
 - **`sync_commands.py`**: A utility script to deploy these configurations to the respective agent directories in your home folder.
 
 ## Synchronization Script (`sync_commands.py`)
@@ -26,6 +35,7 @@ The `sync_commands.py` script automates the distribution of configs to supported
 1.  **Commands Distribution**:
     - **Gemini & Qwen**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
     - **Claude**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/` (since Claude typically uses `.md` files for prompts).
+    - Supports all 8 command files: architect, debug, deep_dive, edge_case, git_commit, implement, review_changes, and update_doc.
 
 2.  **`AGENTS.md` Distribution**:
     - Symlinks the root `AGENTS.md` to the appropriate location and filename for each agent:

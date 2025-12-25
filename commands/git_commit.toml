@@ -6,10 +6,14 @@ prompt = """1. Inspect the working tree.
    - If any files may not belong in version control, STOP and ask the user.
    - If changes should be split into multiple commits, STOP and ask the user how to group them.
 
-3. Stage changes.
+3. Review and update documentation.
+   - Review all relevant documentation (global or file-level) impacted by this commit.
+   - Add or update documentation as required.
+
+4. Stage changes.
    - Stage all approved new and modified files.
 
-4. Commit.
+5. Commit.
    - Create a commit using Conventional Commits format:
      type(scope): short, imperative summary
    - Valid types include: feat, fix, docs, style, refactor, test, chore.

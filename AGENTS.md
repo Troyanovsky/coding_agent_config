@@ -5,30 +5,75 @@
 4. Verify changes through tests while preserving existing functionality.  
 5. Summarize changes concisely.  
 
-## Code Quality Principles
-- Follow DRY, KISS, YAGNI, and SOLID principles.  
-- Avoid duplicate code; use helper functions.  
-- Ensure correctness, efficiency, security, error prevention, and maintainability.  
 
-## Structure and Formatting
-- Keep line length, function/component size, and complexity reasonable.  
-- Use logical modules/helpers.  
-- Explicitly mark code changes (keep/remove/edit).  
-- Split multiple changes into separate code blocks.  
+## Core Engineering Principles
 
-## Naming and Security
-- Use descriptive, consistent names.  
-- Avoid hardcoded literals or credentials.  
-- Never commit secrets/API keys.
+- Code must prioritize **correctness, clarity, security, and maintainability**.
+- Apply **DRY, KISS, YAGNI, and SOLID** principles when they reduce complexity—not as dogma.
+- Prefer explicit, readable code over clever or overly compact implementations.
 
-## Documentation
-- For every code file you create or update, you MUST include/update a concise 3-line header comment at the very top: Input (what this depends on), Output (what this offers), File Pos (what's the role/position of this file in the system).
-- Include meaningful, non-redundant block comments for functions and inline comments.  
-- Git commit message format: <type>(<scope>): <message>. Use one line for simple changes, body message for complex changes. e.g. `fix(auth): correct token expiration handling`, `feat(profile): add user profile picture upload`.
-- Before Git commits, you should update relevant documentation files.
 
-## Other Guidelines
-- **Verify Information**: ALWAYS verify information before presenting it by reading relevant files. Do not make assumptions or speculate without clear evidence.
-- **No Inventions**: Don't invent changes other than what's explicitly requested.
-- **Preserve Existing Code**: Don't remove unrelated code or functionalities. Pay attention to preserving existing structures.
-- **Security-First Approach**: Always consider security implications when modifying or suggesting code changes.
+## Structure, Scope, and Complexity
+
+- Every function, class, or component must have a **single, clear responsibility**.
+- Prefer small, composable units over large, multi-purpose ones.
+- Avoid deep nesting and complex control flow; refactor when logic becomes difficult to follow.
+- Group related logic into **logical modules or helpers**.
+- Limit changes to the **explicit scope of the task or PR**.
+- Do not remove, rename, or refactor unrelated code.
+- Preserve existing behavior unless a change is explicitly intended and documented.
+
+
+## Naming, Constants, and Security
+
+- Use **descriptive, consistent names** that reflect domain intent.
+- Avoid magic numbers and hardcoded literals; use named constants or configuration.
+- **Never commit secrets, credentials, tokens, or API keys**.
+- Always consider security implications when modifying or introducing code.
+
+
+## Documentation Standards
+
+- Every source file must begin with **concise, language-standard documentation** describing its **purpose and responsibility**, using the **canonical, tool-supported mechanism** for that language.
+- File-level documentation must be **kept up to date whenever responsibilities change**.
+- Public functions, classes, and non-obvious logic must be documented.
+- Comments should explain **why** something exists or behaves a certain way—**not restate what the code does**.
+- Update relevant documentation files **before merging changes**.
+
+
+## Change Integrity & Correctness
+
+- Always verify assumptions by **reading existing code and documentation**.
+- Do not invent behavior, APIs, or changes beyond what is explicitly requested.
+- Avoid speculative or hypothetical implementations.
+- Ensure changes are correct, safe, and consistent with existing design.
+
+
+## Git & Commit Hygiene
+
+- Commits must be **logically scoped and atomic**.
+- Commit messages must follow:
+
+```
+
+<type>(<scope>): <message>
+
+```
+
+Examples:
+- `fix(auth): correct token expiration handling`
+- `feat(profile): add user profile picture upload`
+
+- Use a commit body for complex changes to explain **intent, context, and impact**.
+
+
+## Review Expectations
+
+- Code reviews focus on **correctness, clarity, scope, security, and maintainability**.
+- Stylistic feedback should be grounded in these standards, not personal preference.
+- If a rule is violated, it must be addressed before merge.
+
+
+## Final Guiding Rule
+
+> Leave the codebase **clearer, safer, and easier to maintain** than you found it.

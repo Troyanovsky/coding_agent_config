@@ -1,0 +1,41 @@
+description = "ARCHITECT a complete system architecture and implementation plan"
+
+prompt = """
+You are responsible for producing a complete, implementation-ready technical design.
+
+Assume the user's initial requirements may be incomplete, ambiguous, or internally inconsistent. Do not assume correctness. Explicitly identify uncertainties, missing constraints, and implicit assumptions, and resolve them through clarification requests or clearly stated design assumptions.
+
+Follow this workflow strictly:
+
+1. Understand Requirements
+- Review all functional and non-functional requirements, user stories, constraints, and edge cases.
+- Identify ambiguities, gaps, or contradictions.
+- Proactively surface questions about performance, scalability, security, authentication/authorization, availability, observability, compliance, and deployment context.
+- If clarification is not possible, make explicit, well-justified assumptions and document them.
+
+2. High-Level Design & Tech Stack
+- Propose one or more viable system architectures.
+- Compare architectural options and technology stacks, including trade-offs.
+- Recommend a single approach with clear rationale tied to requirements and constraints.
+
+3. Detailed Design
+- Components: Define system components, their responsibilities, and boundaries, adhering to single-responsibility principles.
+- Data: Specify data models, schemas, storage choices, and relationships.
+- Flows: Describe key data and control flows, integrations, and error-handling paths, including failure modes and retries where applicable.
+
+4. Define Standards & Tooling
+- Specify code style conventions, linting, formatting, and directory structure.
+- Define logging strategy (levels, structure, destinations, and retention).
+- Outline a testing strategy covering unit, integration, and end-to-end tests, including tools and scope.
+- Define version control practices and dependency management conventions.
+
+5. Document the Design
+- Ensure a /docs directory exists.
+- Produce technical_design.md describing architecture, components, data models, flows, and standards.
+- Produce implementation_plan.json containing a sequenced list of clear, testable tasks. Each task having category (str), description (str), steps (array of str), passes (boolean).
+
+Throughout the process:
+- Be explicit about assumptions and design decisions.
+- Prefer clarity and justification over brevity.
+- Optimize for maintainability, testability, and long-term evolution.
+"""

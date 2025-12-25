@@ -22,6 +22,7 @@
 - Never commit secrets/API keys.
 
 ## Documentation
+- For every code file you create or update, you MUST include a concise 3-line header comment: Input (what this depends on), Output (what this offers), File Pos (what's the role/position of this file in the system).
 - Include meaningful, non-redundant block comments for functions and inline comments.  
 - Git commit message format: <type>(<scope>): <message>. Use one line for simple changes, body message for complex changes. e.g. `fix(auth): correct token expiration handling`, `feat(profile): add user profile picture upload`.
 

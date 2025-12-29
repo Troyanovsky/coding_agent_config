@@ -14,9 +14,6 @@ except ImportError:
         print("Please run: pip install tomli")
         sys.exit(1)
 
-def expand_path(path_str):
-    return pathlib.Path(path_str).expanduser().resolve()
-
 def safe_symlink(target, link_name):
     """
     Creates a symlink safely, handling Windows permission errors.
@@ -31,6 +28,19 @@ def safe_symlink(target, link_name):
             print("  -> Please enable 'Developer Mode' in Windows Settings or run this script as Administrator.")
         else:
             print(f"  Error linking {target.name}: {e}")
+
+def safe_remove(file_path):
+    """
+    Removes a file or symlink safely, handling potential errors.
+    """
+    try:
+        if file_path.is_symlink() or file_path.is_file():
+            file_path.unlink()
+            print(f"  Removed {file_path.name}")
+            return True
+    except OSError as e:
+        print(f"  Error removing {file_path.name}: {e}")
+    return False
 
 def main():
     # Source directory
@@ -64,17 +74,32 @@ def main():
         if root_dir.exists():
             print(f"Processing {root_dir.name}...")
             cmd_dir.mkdir(parents=True, exist_ok=True)
-            
+
+            # Create or update symlinks
             for source_file in toml_files:
                 link_name = cmd_dir / source_file.name
-                
+
                 # Check if link/file already exists
                 if link_name.exists() or link_name.is_symlink():
                     print(f"  Skipping {source_file.name}: symlink already exists in {cmd_dir.name}")
                     continue
-                
+
                 # Create symlink (absolute path for safety)
                 safe_symlink(source_file.resolve(), link_name)
+
+            # Cleanup: Remove stale symlinks (symlinks pointing to non-existent source files)
+            source_names = {f.name for f in toml_files}
+            source_dir_resolved = source_dir.resolve()
+            for item in cmd_dir.iterdir():
+                if item.is_symlink():
+                    try:
+                        target = item.resolve()
+                        # Check if the symlink target is in our source directory and still exists
+                        if target.parent == source_dir_resolved and target.name not in source_names:
+                            safe_remove(item)
+                    except OSError:
+                        # Broken symlink, remove it
+                        safe_remove(item)
         else:
             print(f"Skipping {root_dir.name}: directory does not exist.")
 
@@ -82,36 +107,41 @@ def main():
     if target_claude_root.exists():
         print(f"Processing .claude...")
         target_claude_cmds.mkdir(parents=True, exist_ok=True)
-        
+
+        # Track which .md files we create/update
+        created_md_files = set()
+
         for source_file in toml_files:
             try:
                 with open(source_file, "rb") as f:
                     data = tomllib.load(f)
-                
+
                 if "prompt" in data:
                     prompt_content = data["prompt"]
                     # Create .md filename
                     md_filename = source_file.stem + ".md"
                     target_file = target_claude_cmds / md_filename
-                    
+                    created_md_files.add(md_filename)
+
                     # Write extracted prompt
                     with open(target_file, "w", encoding="utf-8") as f:
                         f.write(prompt_content)
-                        
+
                     print(f"  Extracted prompt from {source_file.name} -> .claude/commands/{md_filename}")
                 else:
                     print(f"  Skipping {source_file.name}: no 'prompt' key.")
-            except Exception as e:
+            except OSError as e:
                 print(f"  Error processing {source_file.name} for Claude: {e}")
+
+        # Cleanup: Remove .md files that don't have corresponding source .toml files
+        for item in target_claude_cmds.glob("*.md"):
+            if item.name not in created_md_files:
+                safe_remove(item)
     else:
         print("Skipping .claude: directory does not exist.")
 
     # 3. Handle AGENTS.md Symlinks
     agents_md_source = pathlib.Path("AGENTS.md").resolve()
-    if not agents_md_source.exists():
-        print(f"Error: Source file '{agents_md_source}' not found. Cannot create AGENTS.md symlinks.")
-        return
-
     print(f"\nProcessing AGENTS.md symlinks...")
 
     # Define target configurations for AGENTS.md
@@ -123,15 +153,24 @@ def main():
         (home / ".iflow", "IFLOW.md"),
     ]
 
-    for root_dir, target_file_name in agents_md_targets:
-        if root_dir.exists():
-            link_path = root_dir / target_file_name
-            if not link_path.exists() and not link_path.is_symlink():
-                safe_symlink(agents_md_source, link_path)
+    if agents_md_source.exists():
+        for root_dir, target_file_name in agents_md_targets:
+            if root_dir.exists():
+                link_path = root_dir / target_file_name
+                if not link_path.exists() and not link_path.is_symlink():
+                    safe_symlink(agents_md_source, link_path)
+                else:
+                    print(f"  Skipping AGENTS.md link to {root_dir.name}/{target_file_name}: already exists.")
             else:
-                print(f"  Skipping AGENTS.md link to {root_dir.name}/{target_file_name}: already exists.")
-        else:
-            print(f"Skipping {root_dir.name}: directory does not exist for AGENTS.md symlink.")
+                print(f"Skipping {root_dir.name}: directory does not exist for AGENTS.md symlink.")
+    else:
+        print(f"Warning: Source file '{agents_md_source}' not found. Removing existing AGENTS.md symlinks...")
+        # Remove existing AGENTS.md symlinks if source file doesn't exist
+        for root_dir, target_file_name in agents_md_targets:
+            if root_dir.exists():
+                link_path = root_dir / target_file_name
+                if link_path.exists() or link_path.is_symlink():
+                    safe_remove(link_path)
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,15 @@
+description = "Maintain issue tracker JSON file in doc/docs folder."
+prompt = """Maintain an issue tracker JSON file in the project's documentation folder (doc or docs, whichever exists or is conventional). Each issue should have the following fields:
+- category (str): The category/type of the issue
+- description (str): A clear description of the issue
+- expected_behavior (str): What the expected behavior should be
+- passes (bool): Whether the issue passes or fails
+
+Process:
+1. Check if 'doc' or 'docs' folder exists in the project. If neither exists, create a 'docs' folder.
+2. Read the existing issue tracker JSON file if it exists (e.g., issues.json, tracker.json, or similar).
+3. Review the current codebase to identify issues, bugs, or areas needing attention.
+4. Update the issue tracker JSON with new issues or update existing ones.
+5. Ensure all issues have the required fields and are properly formatted.
+6. Preserve existing issues unless they are resolved or need updates.
+"""

@@ -16,6 +16,7 @@ This repository serves as a centralized source of truth for coding agent configu
     - `edge_case.toml`: Generate product & technical edge cases
     - `git_commit.toml`: Generate Conventional Commits formatted messages
     - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
+    - `issue_tracker.toml`: Maintain issue tracker JSON file in doc/docs folder
     - `review_changes.toml`: Review changed files for bugs and issues
     - `start_task.toml`: Prepare before starting to make sure git is clean
     - `update_doc.toml`: Update documentation based on code changes
@@ -36,7 +37,7 @@ The `sync_commands.py` script automates the distribution of configs to supported
 1.  **Commands Distribution**:
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
     - **Claude & Roo**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/` and `~/.roo/commands/` (since these tools typically use `.md` files for prompts).
-    - Supports all 9 command files: architect, debug, deep_dive, edge_case, git_commit, implement, review_changes, start_task, and update_doc.
+    - Supports all 10 command files: architect, debug, deep_dive, edge_case, git_commit, implement, issue_tracker, review_changes, start_task, and update_doc.
     - **Cleanup**: Automatically removes stale symlinks and `.md` files when source `.toml` files are deleted.
 
 2.  **`AGENTS.md` Distribution**:

@@ -17,6 +17,7 @@ This repository serves as a centralized source of truth for coding agent configu
     - `git_commit.toml`: Generate Conventional Commits formatted messages
     - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
     - `review_changes.toml`: Review changed files for bugs and issues
+    - `start_task.toml`: Prepare before starting to make sure git is clean
     - `update_doc.toml`: Update documentation based on code changes
     - Each `.toml` file defines a command with a `description` and a `prompt`.
 - **`mcp.json`**: Configuration file for Model Context Protocol (MCP) servers, including:
@@ -33,9 +34,10 @@ The `sync_commands.py` script automates the distribution of configs to supported
 ### What it does:
 
 1.  **Commands Distribution**:
-    - **Gemini & Qwen**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
-    - **Claude**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/` (since Claude typically uses `.md` files for prompts).
-    - Supports all 8 command files: architect, debug, deep_dive, edge_case, git_commit, implement, review_changes, and update_doc.
+    - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
+    - **Claude & Roo**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/` and `~/.roo/commands/` (since these tools typically use `.md` files for prompts).
+    - Supports all 9 command files: architect, debug, deep_dive, edge_case, git_commit, implement, review_changes, start_task, and update_doc.
+    - **Cleanup**: Automatically removes stale symlinks and `.md` files when source `.toml` files are deleted.
 
 2.  **`AGENTS.md` Distribution**:
     - Symlinks the root `AGENTS.md` to the appropriate location and filename for each agent:
@@ -44,6 +46,8 @@ The `sync_commands.py` script automates the distribution of configs to supported
         - `~/.qwen/QWEN.md`
         - `~/.codex/AGENTS.md`
         - `~/.iflow/IFLOW.md`
+        - `~/.roo/rules/AGENTS.md`
+    - **Cleanup**: Removes symlinks if the source `AGENTS.md` file is deleted.
 
 ### Prerequisites
 

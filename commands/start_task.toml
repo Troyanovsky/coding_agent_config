@@ -1,0 +1,18 @@
+description = "Prepare before starting to make sure git is clean"
+
+prompt = """You're preparing to start a development task.
+
+1. Check whether this project is under Git version control.
+   - If Git is present, fetch the latest changes and verify the working tree is clean.
+   - If Git is not present, confirm with the user whether version control is needed and help set it up if appropriate.
+
+2. If Git is available:
+   - Default behavior: create a new feature branch or use a Git worktree dedicated to this task.
+   - Do not work on main, master, or any shared branch unless the user explicitly instructs you to do so.
+   - Do not merge, rebase, or resolve conflicts unless explicitly instructed.
+
+3. Before making any code changes, clearly confirm:
+   - the active branch or worktree name
+   - the working tree status
+   - readiness to begin development
+"""

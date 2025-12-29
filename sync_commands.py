@@ -42,6 +42,52 @@ def safe_remove(file_path):
         print(f"  Error removing {file_path.name}: {e}")
     return False
 
+def extract_prompts_to_md(toml_files, target_cmds_dir, tool_name):
+    """
+    Extracts prompts from .toml files to .md files in the target directory,
+    and removes stale .md files that no longer have corresponding source files.
+
+    Args:
+        toml_files: List of source .toml file paths
+        target_cmds_dir: Target directory for .md files
+        tool_name: Name of the tool (for logging purposes)
+    """
+    if not target_cmds_dir.exists():
+        return
+
+    print(f"Processing {tool_name}...")
+    target_cmds_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track which .md files we create/update
+    created_md_files = set()
+
+    for source_file in toml_files:
+        try:
+            with open(source_file, "rb") as f:
+                data = tomllib.load(f)
+
+            if "prompt" in data:
+                prompt_content = data["prompt"]
+                # Create .md filename
+                md_filename = source_file.stem + ".md"
+                target_file = target_cmds_dir / md_filename
+                created_md_files.add(md_filename)
+
+                # Write extracted prompt
+                with open(target_file, "w", encoding="utf-8") as f:
+                    f.write(prompt_content)
+
+                print(f"  Extracted prompt from {source_file.name} -> {tool_name}/commands/{md_filename}")
+            else:
+                print(f"  Skipping {source_file.name}: no 'prompt' key.")
+        except OSError as e:
+            print(f"  Error processing {source_file.name} for {tool_name}: {e}")
+
+    # Cleanup: Remove .md files that don't have corresponding source .toml files
+    for item in target_cmds_dir.glob("*.md"):
+        if item.name not in created_md_files:
+            safe_remove(item)
+
 def main():
     # Source directory
     source_dir = pathlib.Path("./commands")
@@ -105,42 +151,19 @@ def main():
 
     # 2. Handle Claude (Extraction)
     if target_claude_root.exists():
-        print(f"Processing .claude...")
-        target_claude_cmds.mkdir(parents=True, exist_ok=True)
-
-        # Track which .md files we create/update
-        created_md_files = set()
-
-        for source_file in toml_files:
-            try:
-                with open(source_file, "rb") as f:
-                    data = tomllib.load(f)
-
-                if "prompt" in data:
-                    prompt_content = data["prompt"]
-                    # Create .md filename
-                    md_filename = source_file.stem + ".md"
-                    target_file = target_claude_cmds / md_filename
-                    created_md_files.add(md_filename)
-
-                    # Write extracted prompt
-                    with open(target_file, "w", encoding="utf-8") as f:
-                        f.write(prompt_content)
-
-                    print(f"  Extracted prompt from {source_file.name} -> .claude/commands/{md_filename}")
-                else:
-                    print(f"  Skipping {source_file.name}: no 'prompt' key.")
-            except OSError as e:
-                print(f"  Error processing {source_file.name} for Claude: {e}")
-
-        # Cleanup: Remove .md files that don't have corresponding source .toml files
-        for item in target_claude_cmds.glob("*.md"):
-            if item.name not in created_md_files:
-                safe_remove(item)
+        extract_prompts_to_md(toml_files, target_claude_cmds, ".claude")
     else:
         print("Skipping .claude: directory does not exist.")
 
-    # 3. Handle AGENTS.md Symlinks
+    # 3. Handle Roo (Extraction)
+    target_roo_root = home / ".roo"
+    target_roo_cmds = home / ".roo" / "commands"
+    if target_roo_root.exists():
+        extract_prompts_to_md(toml_files, target_roo_cmds, ".roo")
+    else:
+        print("Skipping .roo: directory does not exist.")
+
+    # 4. Handle AGENTS.md Symlinks
     agents_md_source = pathlib.Path("AGENTS.md").resolve()
     print(f"\nProcessing AGENTS.md symlinks...")
 
@@ -163,6 +186,18 @@ def main():
                     print(f"  Skipping AGENTS.md link to {root_dir.name}/{target_file_name}: already exists.")
             else:
                 print(f"Skipping {root_dir.name}: directory does not exist for AGENTS.md symlink.")
+
+        # Handle Roo AGENTS.md symlink to ~/.roo/rules/AGENTS.md
+        target_roo_rules = home / ".roo" / "rules"
+        if target_roo_root.exists():
+            target_roo_rules.mkdir(parents=True, exist_ok=True)
+            link_path = target_roo_rules / "AGENTS.md"
+            if not link_path.exists() and not link_path.is_symlink():
+                safe_symlink(agents_md_source, link_path)
+            else:
+                print(f"  Skipping AGENTS.md link to .roo/rules/AGENTS.md: already exists.")
+        else:
+            print("Skipping .roo: directory does not exist for AGENTS.md symlink.")
     else:
         print(f"Warning: Source file '{agents_md_source}' not found. Removing existing AGENTS.md symlinks...")
         # Remove existing AGENTS.md symlinks if source file doesn't exist
@@ -171,6 +206,13 @@ def main():
                 link_path = root_dir / target_file_name
                 if link_path.exists() or link_path.is_symlink():
                     safe_remove(link_path)
+
+        # Remove Roo AGENTS.md symlink if it exists
+        target_roo_rules = home / ".roo" / "rules"
+        if target_roo_root.exists():
+            link_path = target_roo_rules / "AGENTS.md"
+            if link_path.exists() or link_path.is_symlink():
+                safe_remove(link_path)
 
 if __name__ == "__main__":
     main()

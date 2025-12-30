@@ -1,3 +1,4 @@
+import json
 import os
 import pathlib
 import sys
@@ -52,9 +53,6 @@ def extract_prompts_to_md(toml_files, target_cmds_dir, tool_name):
         target_cmds_dir: Target directory for .md files
         tool_name: Name of the tool (for logging purposes)
     """
-    if not target_cmds_dir.exists():
-        return
-
     print(f"Processing {tool_name}...")
     target_cmds_dir.mkdir(parents=True, exist_ok=True)
 
@@ -78,6 +76,57 @@ def extract_prompts_to_md(toml_files, target_cmds_dir, tool_name):
                     f.write(prompt_content)
 
                 print(f"  Extracted prompt from {source_file.name} -> {tool_name}/commands/{md_filename}")
+            else:
+                print(f"  Skipping {source_file.name}: no 'prompt' key.")
+        except OSError as e:
+            print(f"  Error processing {source_file.name} for {tool_name}: {e}")
+
+    # Cleanup: Remove .md files that don't have corresponding source .toml files
+    for item in target_cmds_dir.glob("*.md"):
+        if item.name not in created_md_files:
+            safe_remove(item)
+
+def extract_prompts_to_md_with_description(toml_files, target_cmds_dir, tool_name):
+    """
+    Extracts prompts and descriptions from .toml files to .md files with YAML front matter,
+    and removes stale .md files that no longer have corresponding source files.
+
+    The output format is:
+    ---
+    description: {description}
+    ---
+
+    {prompt}
+
+    Args:
+        toml_files: List of source .toml file paths
+        target_cmds_dir: Target directory for .md files
+        tool_name: Name of the tool (for logging purposes)
+    """
+    print(f"Processing {tool_name}...")
+    target_cmds_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track which .md files we create/update
+    created_md_files = set()
+
+    for source_file in toml_files:
+        try:
+            with open(source_file, "rb") as f:
+                data = tomllib.load(f)
+
+            if "prompt" in data:
+                prompt_content = data["prompt"]
+                description = data.get("description", "")
+                # Create .md filename
+                md_filename = source_file.stem + ".md"
+                target_file = target_cmds_dir / md_filename
+                created_md_files.add(md_filename)
+
+                # Write with YAML front matter (escaped for safety)
+                with open(target_file, "w", encoding="utf-8") as f:
+                    f.write(f"---\ndescription: {json.dumps(description)}\n---\n\n{prompt_content}")
+
+                print(f"  Extracted prompt from {source_file.name} -> {tool_name}/prompts/{md_filename}")
             else:
                 print(f"  Skipping {source_file.name}: no 'prompt' key.")
         except OSError as e:
@@ -163,7 +212,15 @@ def main():
     else:
         print("Skipping .roo: directory does not exist.")
 
-    # 4. Handle AGENTS.md Symlinks
+    # 4. Handle Codex (Extraction with Description)
+    target_codex_root = home / ".codex"
+    target_codex_prompts = home / ".codex" / "prompts"
+    if target_codex_root.exists():
+        extract_prompts_to_md_with_description(toml_files, target_codex_prompts, ".codex")
+    else:
+        print("Skipping .codex: directory does not exist.")
+
+    # 5. Handle AGENTS.md Symlinks
     agents_md_source = pathlib.Path("AGENTS.md").resolve()
     print(f"\nProcessing AGENTS.md symlinks...")
 

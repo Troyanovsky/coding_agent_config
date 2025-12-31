@@ -1,5 +1,5 @@
 description = "Update documentation based on code changes."
-prompt = """Review the specified documentation file to verify that it accurately reflects the current codebase. Update the documentation to fix errors and include relevant changes. Preserve the original structure and keep the content concise.
+prompt = """Review the specified documentation files to verify that it accurately reflects the current codebase. Update the documentation to fix errors and include relevant changes. Preserve the original structure and keep the content concise.
 
 Process:
 1. Read the existing documentation to understand its scope and intent.

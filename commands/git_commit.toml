@@ -7,7 +7,7 @@ prompt = """1. Inspect the working tree.
    - If changes should be split into multiple commits, STOP and ask the user how to group them.
 
 3. Review and update documentation.
-   - Review all relevant documentation (global or file-level) impacted by this commit.
+   - Review all relevant documentation (global or file-level) impacted by this commit. E.g. README.md, AGENTS.md, ISSUES.json, etc.
    - Add or update documentation as required.
 
 4. Stage changes.

@@ -27,7 +27,8 @@ Follow this workflow strictly:
 - Verify correctness using linting, tests, static analysis, or mocks as applicable.
 - Explain how verification confirms the requirement is met.
 
-5. Summarize
+5. Wrap Up & Summarize
+- If accepted, update `passes` field of the issue in ISSUES.json (if exists).
 - Provide a concise summary of the requirement, solution, changes made, and final outcome.
 
 Throughout the process:

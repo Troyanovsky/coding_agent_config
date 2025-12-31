@@ -1,9 +1,12 @@
 description = "Maintain issue tracker JSON file in doc/docs folder."
 prompt = """Maintain an issue tracker JSON (ISSUES.json) file in the project's documentation folder (doc or docs, whichever exists or is conventional). Each issue should have the following fields:
-- category (str): The category/type of the issue
-- description (str): A clear description of the issue
-- expected_behavior (str): What the expected behavior should be
-- passes (bool): Whether the issue passes or fails
+- id: str, in the format of <TYPE>-<NNN>, e.g. BUG-012
+- type: str, one of "story" | "bug" | "task" | "change"
+- epic: str, high-level category (e.g. "Auth", "Payments")
+- title: str, short summary
+- description: str, detailed explanation but still concise
+- acceptance_criteria: array of str, describing success conditions
+- passes: boolean indicating whether acceptance criteria are met
 
 Process:
 1. Check if 'doc' or 'docs' folder exists in the project. If neither exists, create a 'docs' folder.

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "TASK-001",
+    "type": "task",
+    "epic": "Documentation",
+    "title": "Update project documentation",
+    "description": "Review and update all documentation files to ensure they accurately reflect the current codebase structure and command configurations.",
+    "acceptance_criteria": [
+      "README.md reflects current functionality",
+      "AGENTS.md is up to date",
+      "ISSUES.json status is accurate"
+    ],
+    "passes": true
+  }
+]

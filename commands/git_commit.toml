@@ -10,10 +10,14 @@ prompt = """1. Inspect the working tree.
    - Review all relevant documentation (global or file-level) impacted by this commit. E.g. README.md, AGENTS.md, ISSUES.json, etc.
    - Add or update documentation as required.
 
-4. Stage changes.
+4. Run lint and tests.
+   - If there are lint or test commands configured for this project, run them.
+   - Only proceed if all checks pass. If any fail, STOP and ask the user how to proceed.
+
+5. Stage changes.
    - Stage all approved new and modified files.
 
-5. Commit.
+6. Commit.
    - Create a commit using Conventional Commits format:
      type(scope): short, imperative summary
    - Valid types include: feat, fix, docs, style, refactor, test, chore.

@@ -50,8 +50,19 @@ def _get_output_stem(source_stem, strip_prefix):
     """
     Computes the output filename stem after optionally stripping a prefix.
 
-    Returns None if the stem would be empty after stripping.
+    Args:
+        source_stem: The source filename stem (without extension).
+        strip_prefix: Optional prefix to strip from the stem. Pass None to skip
+            stripping. Passing an empty string will trigger a warning and behave
+            like None.
+
+    Returns:
+        The output stem after stripping, or None if the stem would be empty
+        after stripping.
     """
+    if strip_prefix == "":
+        print("  Warning: strip_prefix is an empty string. Prefix stripping will be skipped.")
+
     if strip_prefix and source_stem.startswith(strip_prefix):
         result = source_stem[len(strip_prefix):]
         return result if result else None

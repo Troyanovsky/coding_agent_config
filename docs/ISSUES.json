@@ -24,7 +24,7 @@
       "Appropriate warning or error is logged for empty prefix",
       "Documentation clarifies expected behavior"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "BUG-004",

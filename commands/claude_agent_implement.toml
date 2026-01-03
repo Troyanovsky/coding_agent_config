@@ -10,19 +10,20 @@ Process:
    - Confirm whether `git pull` is needed
    - Ensure the working tree is clean
 2. Prepare work:
-   - Create a new feature branch following repository conventions
+   - Create a new feature branch following repository conventions unless explicitly instructed not to
 3. Plan:
-   - Invoke a plan agent to explore the codebase
+   - Invoke the plan agent to explore the codebase
    - Produce a clear, minimal implementation plan
+   - Confirm the plan with the user only if their original request includes "confirm plan"; otherwise, implement the plan directly.
 4. Implement:
    - Apply the plan precisely
    - Limit changes to what is necessary to complete the task
 5. Review:
-   - Invoke a code-reviewer agent on your changes
+   - Invoke the code-reviewer agent on your changes
    - Fix identified bugs and issues
    - Do not introduce unsolicited refactors or improvements
 6. Documentation:
-   - Invoke a doc-maintainer agent to update relevant documentation
+   - Invoke the docs-updater agent to update relevant documentation
 7. Finalize:
    - Commit changes using established commit message conventions
 

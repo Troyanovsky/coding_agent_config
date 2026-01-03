@@ -14,50 +14,6 @@
     "passes": false
   },
   {
-    "id": "BUG-006",
-    "type": "bug",
-    "epic": "Code Quality",
-    "title": "Standardize error message formatting",
-    "description": "Error messages in sync_commands.py are inconsistent. Examples: _process_source_file uses 'f\"  Error processing {source_file.name} for {tool_name}: {e}\"' (includes tool name), but safe_remove uses 'f\"  Error removing {file_path.name}: {e}\"' (no context). Standardize to include relevant context (file name, operation, tool) in all error messages.",
-    "acceptance_criteria": [
-      "All error messages follow consistent format",
-      "Error messages include relevant context (file name, operation, tool)",
-      "Error messages are helpful for debugging",
-      "All error logging uses same pattern"
-    ],
-    "passes": true
-  },
-  {
-    "id": "TASK-003",
-    "type": "task",
-    "epic": "Testing",
-    "title": "Add unit tests for sync_commands.py",
-    "description": "Create comprehensive unit tests for sync_commands.py covering prefix stripping logic, file filtering, cleanup logic, and edge cases.",
-    "acceptance_criteria": [
-      "Test suite created with pytest or unittest",
-      "Tests cover prefix stripping with various prefixes",
-      "Tests cover file filtering (claude_ vs shared)",
-      "Tests cover cleanup logic for stale files",
-      "Tests cover edge cases (empty prefix, files named exactly claude_.toml, duplicate filenames)",
-      "All tests pass"
-    ],
-    "passes": false
-  },
-  {
-    "id": "TASK-006",
-    "type": "task",
-    "epic": "Features",
-    "title": "Add verbose and dry-run modes to sync_commands.py",
-    "description": "Add --verbose flag for detailed logging and --dry-run flag to preview changes without actually making them, improving usability and safety.",
-    "acceptance_criteria": [
-      "--verbose flag shows detailed operations",
-      "--dry-run flag shows what would be changed without making changes",
-      "Help documentation explains both flags",
-      "Both flags work independently and together"
-    ],
-    "passes": false
-  },
-  {
     "id": "TASK-007",
     "type": "task",
     "epic": "Code Quality",
@@ -69,6 +25,6 @@
       "Code passes mypy or similar type checker",
       "Type hints are accurate and helpful"
     ],
-    "passes": false
+    "passes": true
   }
 ]

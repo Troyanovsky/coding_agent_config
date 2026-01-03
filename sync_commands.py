@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import json
 import os
 import pathlib
 import sys
 import platform
+from typing import Optional
 
 # Try to import tomli for parsing TOML files (Python 3.10 compatibility)
 try:
@@ -18,7 +21,7 @@ except ImportError:
 # Module-level constants
 CLAUDE_PREFIX = "claude_"
 
-def safe_symlink(target, link_name):
+def safe_symlink(target: pathlib.Path, link_name: pathlib.Path) -> None:
     """
     Creates a symlink safely, handling Windows permission errors.
     """
@@ -33,7 +36,7 @@ def safe_symlink(target, link_name):
         else:
             print(f"  Error linking {target.name}: {e}")
 
-def safe_remove(file_path, context=None):
+def safe_remove(file_path: pathlib.Path, context: Optional[str] = None) -> bool:
     """
     Removes a file or symlink safely, handling potential errors.
 
@@ -51,7 +54,7 @@ def safe_remove(file_path, context=None):
         print(f"  Error removing {file_path.name}{context_str}: {e}")
     return False
 
-def _get_output_stem(source_stem, strip_prefix):
+def _get_output_stem(source_stem: str, strip_prefix: Optional[str]) -> Optional[str]:
     """
     Computes the output filename stem after optionally stripping a prefix.
 
@@ -74,7 +77,7 @@ def _get_output_stem(source_stem, strip_prefix):
     return source_stem
 
 
-def _write_prompt_file(target_file, prompt_content, description=None):
+def _write_prompt_file(target_file: pathlib.Path, prompt_content: str, description: Optional[str] = None) -> None:
     """
     Writes prompt content to a target file, optionally with YAML front matter.
     """
@@ -85,7 +88,7 @@ def _write_prompt_file(target_file, prompt_content, description=None):
             f.write(prompt_content)
 
 
-def _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, include_description):
+def _process_source_file(source_file: pathlib.Path, target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str], include_description: bool) -> Optional[str]:
     """
     Processes a single source .toml file and extracts its prompt to a .md file.
     Returns the .md filename if successful, None otherwise.
@@ -119,7 +122,7 @@ def _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, 
         return None
 
 
-def _should_remove_md_file(item, toml_files, created_md_files, strip_prefix):
+def _should_remove_md_file(item: pathlib.Path, toml_files: list[pathlib.Path], created_md_files: set[str], strip_prefix: Optional[str]) -> bool:
     """
     Determines if a .md file should be removed during cleanup.
 
@@ -146,7 +149,7 @@ def _should_remove_md_file(item, toml_files, created_md_files, strip_prefix):
     return True
 
 
-def _cleanup_stale_md_files(target_cmds_dir, toml_files, created_md_files, strip_prefix):
+def _cleanup_stale_md_files(target_cmds_dir: pathlib.Path, toml_files: list[pathlib.Path], created_md_files: set[str], strip_prefix: Optional[str]) -> None:
     """
     Removes .md files that don't have corresponding source .toml files,
     including files with old naming format.
@@ -156,7 +159,7 @@ def _cleanup_stale_md_files(target_cmds_dir, toml_files, created_md_files, strip
             safe_remove(item, context="stale .md file during cleanup")
 
 
-def _cleanup_stale_symlinks(cmd_dir, source_files, source_dir_resolved):
+def _cleanup_stale_symlinks(cmd_dir: pathlib.Path, source_files: list[pathlib.Path], source_dir_resolved: pathlib.Path) -> None:
     """
     Removes stale symlinks from a directory that point to non-existent source files.
     """
@@ -171,7 +174,7 @@ def _cleanup_stale_symlinks(cmd_dir, source_files, source_dir_resolved):
                 safe_remove(item, context="broken symlink during cleanup")
 
 
-def _sync_symlinks_to_dir(source_files, cmd_dir, source_dir_resolved):
+def _sync_symlinks_to_dir(source_files: list[pathlib.Path], cmd_dir: pathlib.Path, source_dir_resolved: pathlib.Path) -> None:
     """
     Creates symlinks for source files in a target directory and cleans up stale symlinks.
     """
@@ -187,7 +190,7 @@ def _sync_symlinks_to_dir(source_files, cmd_dir, source_dir_resolved):
     _cleanup_stale_symlinks(cmd_dir, source_files, source_dir_resolved)
 
 
-def _sync_symlink_targets(shared_files, source_dir, targets_symlink):
+def _sync_symlink_targets(shared_files: list[pathlib.Path], source_dir: pathlib.Path, targets_symlink: list[tuple[pathlib.Path, pathlib.Path]]) -> None:
     """
     Syncs symlinks for tools that use direct file symlinks (Gemini, Qwen, iflow).
     """
@@ -200,7 +203,7 @@ def _sync_symlink_targets(shared_files, source_dir, targets_symlink):
             print(f"Skipping {root_dir.name}: directory does not exist.")
 
 
-def _sync_agents_folder(target_claude_agents):
+def _sync_agents_folder(target_claude_agents: pathlib.Path) -> None:
     """
     Syncs agent .md files from ./agents to .claude/agents.
     """
@@ -211,7 +214,7 @@ def _sync_agents_folder(target_claude_agents):
         print("  Skipping agents folder: source directory './agents' does not exist.")
         return
 
-    agents_md_files = list(agents_source_dir.glob("*.md"))
+    agents_md_files: list[pathlib.Path] = list(agents_source_dir.glob("*.md"))
     if not agents_md_files:
         print("  No .md files found in ./agents/")
         return
@@ -220,7 +223,7 @@ def _sync_agents_folder(target_claude_agents):
     _sync_symlinks_to_dir(agents_md_files, target_claude_agents, agents_source_dir.resolve())
 
 
-def _create_agents_md_link(agents_md_source, root_dir, target_file_name):
+def _create_agents_md_link(agents_md_source: pathlib.Path, root_dir: pathlib.Path, target_file_name: str) -> bool:
     """
     Creates a symlink for AGENTS.md to the specified target location.
     Returns True if the link was created or already exists.
@@ -237,7 +240,7 @@ def _create_agents_md_link(agents_md_source, root_dir, target_file_name):
     return True
 
 
-def _remove_agents_md_link(root_dir, target_file_name):
+def _remove_agents_md_link(root_dir: pathlib.Path, target_file_name: str) -> None:
     """
     Removes an AGENTS.md symlink from the specified location if it exists.
     """
@@ -247,14 +250,14 @@ def _remove_agents_md_link(root_dir, target_file_name):
             safe_remove(link_path, context="AGENTS.md symlink")
 
 
-def _sync_agents_md_links(home):
+def _sync_agents_md_links(home: pathlib.Path) -> None:
     """
     Syncs AGENTS.md symlinks to various tool directories.
     """
     agents_md_source = pathlib.Path("AGENTS.md").resolve()
     print(f"\nProcessing AGENTS.md symlinks...")
 
-    agents_md_targets = [
+    agents_md_targets: list[tuple[pathlib.Path, str]] = [
         (home / ".claude", "CLAUDE.md"),
         (home / ".gemini", "AGENTS.md"),
         (home / ".qwen", "QWEN.md"),
@@ -285,7 +288,7 @@ def _sync_agents_md_links(home):
             _remove_agents_md_link(target_roo_rules, "AGENTS.md")
 
 
-def extract_prompts_to_md(toml_files, target_cmds_dir, tool_name, strip_prefix=None):
+def extract_prompts_to_md(toml_files: list[pathlib.Path], target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str] = None) -> None:
     """
     Extracts prompts from .toml files to .md files in the target directory,
     and removes stale .md files that no longer have corresponding source files.
@@ -299,7 +302,7 @@ def extract_prompts_to_md(toml_files, target_cmds_dir, tool_name, strip_prefix=N
     print(f"Processing {tool_name}...")
     target_cmds_dir.mkdir(parents=True, exist_ok=True)
 
-    created_md_files = set()
+    created_md_files: set[str] = set()
     for source_file in toml_files:
         result = _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, include_description=False)
         if result:
@@ -307,7 +310,7 @@ def extract_prompts_to_md(toml_files, target_cmds_dir, tool_name, strip_prefix=N
 
     _cleanup_stale_md_files(target_cmds_dir, toml_files, created_md_files, strip_prefix)
 
-def extract_prompts_to_md_with_description(toml_files, target_cmds_dir, tool_name, strip_prefix=None):
+def extract_prompts_to_md_with_description(toml_files: list[pathlib.Path], target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str] = None) -> None:
     """
     Extracts prompts and descriptions from .toml files to .md files with YAML front matter,
     and removes stale .md files that no longer have corresponding source files.
@@ -328,7 +331,7 @@ def extract_prompts_to_md_with_description(toml_files, target_cmds_dir, tool_nam
     print(f"Processing {tool_name}...")
     target_cmds_dir.mkdir(parents=True, exist_ok=True)
 
-    created_md_files = set()
+    created_md_files: set[str] = set()
     for source_file in toml_files:
         result = _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, include_description=True)
         if result:
@@ -336,7 +339,7 @@ def extract_prompts_to_md_with_description(toml_files, target_cmds_dir, tool_nam
 
     _cleanup_stale_md_files(target_cmds_dir, toml_files, created_md_files, strip_prefix)
 
-def main():
+def main() -> None:
     """Main entry point for syncing command files to various AI tool directories."""
     # Source directory
     source_dir = pathlib.Path("./commands")
@@ -345,7 +348,7 @@ def main():
         return
 
     # Get all .toml files
-    toml_files = list(source_dir.glob("*.toml"))
+    toml_files: list[pathlib.Path] = list(source_dir.glob("*.toml"))
     if not toml_files:
         print("No .toml files found in ./commands/")
         return
@@ -353,8 +356,8 @@ def main():
     print(f"Found {len(toml_files)} .toml files.")
 
     # Filter files: claude_ prefixed commands only go to Claude, others go to all tools
-    claude_only_files = [f for f in toml_files if f.stem.startswith(CLAUDE_PREFIX)]
-    shared_files = [f for f in toml_files if not f.stem.startswith(CLAUDE_PREFIX)]
+    claude_only_files: list[pathlib.Path] = [f for f in toml_files if f.stem.startswith(CLAUDE_PREFIX)]
+    shared_files: list[pathlib.Path] = [f for f in toml_files if not f.stem.startswith(CLAUDE_PREFIX)]
 
     print(f"  Claude-only commands ({CLAUDE_PREFIX}*): {len(claude_only_files)}")
     print(f"  Shared commands: {len(shared_files)}")
@@ -362,7 +365,7 @@ def main():
     # Define targets
     home = pathlib.Path.home()
 
-    targets_symlink = [
+    targets_symlink: list[tuple[pathlib.Path, pathlib.Path]] = [
         (home / ".gemini", home / ".gemini" / "commands"),
         (home / ".qwen", home / ".qwen" / "commands"),
         (home / ".iflow", home / ".iflow" / "commands"),

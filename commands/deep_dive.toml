@@ -1,2 +1,14 @@
 description = "Deep dive into an issue by inspecting relevant files."
-prompt = """Use the user’s description to guide a focused deep-dive of relevant files. Investigate methodically, validate assumptions against the content, and base conclusions on evidence. Report your findings but DO NOT edit code yet."""
+prompt = """Goal: Use the user’s description to guide a focused deep dive into relevant files.
+
+Instructions:
+- Inspect only files that are clearly related to the issue.
+- Make assumptions explicit and validate them against the actual content.
+- Base all conclusions on observable evidence (e.g., file paths, snippets, behavior).
+- Do NOT modify any code.
+- Avoid speculation; call out uncertainty or missing evidence when present.
+
+Output:
+- Default: report findings in chat.
+- If the user says “DOCS”: report findings in chat and create a Markdown file in `/doc`.
+"""

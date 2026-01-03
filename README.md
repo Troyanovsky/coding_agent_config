@@ -36,11 +36,17 @@ The `sync_commands.py` script automates the distribution of configs to supported
 
 1.  **Commands Distribution**:
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
-    - **Claude & Roo**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/` and `~/.roo/commands/` (since these tools typically use `.md` files for prompts).
-    - Supports all 10 command files: architect, debug, deep_dive, edge_case, git_commit, implement, issue_tracker, review_changes, start_task, and update_doc.
+    - **Claude**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/`. Commands prefixed with `claude_` (e.g., `claude_agent_implement.toml`) are Claude-only and have the prefix stripped in the output (e.g., `agent_implement.md`).
+    - **Roo, Codex**: Extracts prompts to `.md` files for shared commands only (non-`claude_` prefixed).
+    - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools. All other commands are shared across all tools.
+    - **File Regeneration**: All `.md` command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
     - **Cleanup**: Automatically removes stale symlinks and `.md` files when source `.toml` files are deleted.
 
-2.  **`AGENTS.md` Distribution**:
+2.  **Agents Folder Distribution**:
+    - Symlinks `.md` files from `./agents/` to `~/.claude/agents/` for Claude Code's agent system.
+    - Supports custom agent definitions that can be referenced in command prompts.
+
+3.  **`AGENTS.md` Distribution**:
     - Symlinks the root `AGENTS.md` to the appropriate location and filename for each agent:
         - `~/.claude/CLAUDE.md`
         - `~/.gemini/AGENTS.md`

@@ -1,0 +1,34 @@
+description = "Implements a described task or fixes an issue end-to-end with subagents"
+
+prompt = """
+Implement the described task or fixes an issue end-to-end, following the prescribed process.
+The task description is the source of truth. Do not add features or enhancements beyond what is required.
+
+Process:
+1. Check repository state:
+   - Run `git fetch` and `git status`
+   - Confirm whether `git pull` is needed
+   - Ensure the working tree is clean
+2. Prepare work:
+   - Create a new feature branch following repository conventions
+3. Plan:
+   - Invoke a plan agent to explore the codebase
+   - Produce a clear, minimal implementation plan
+4. Implement:
+   - Apply the plan precisely
+   - Limit changes to what is necessary to complete the task
+5. Review:
+   - Invoke a code-reviewer agent on your changes
+   - Fix identified bugs and issues
+   - Do not introduce unsolicited refactors or improvements
+6. Documentation:
+   - Invoke a doc-maintainer agent to update relevant documentation
+7. Finalize:
+   - Commit changes using established commit message conventions
+
+Operating rules:
+- Prefer correctness over cleverness
+- Keep diffs small and focused
+- Stop once the task is fully satisfied
+- If requirements are unclear, surface the ambiguity instead of guessing
+"""

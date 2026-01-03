@@ -25,5 +25,162 @@
       "Progress can be queried and displayed"
     ],
     "passes": false
+  },
+  {
+    "id": "BUG-001",
+    "type": "bug",
+    "epic": "Code Quality",
+    "title": "Fix logic error in _should_remove_md_file cleanup logic",
+    "description": "The _should_remove_md_file function at sync_commands.py:127-141 has a critical bug. When a .md file matches a source file, it returns 'item.name not in created_md_files', which means files that match source files but weren't created in the current run will be deleted. This causes data loss on subsequent runs. The function should return False (keep file) whenever a .md file matches any source file, regardless of whether it was just created.",
+    "acceptance_criteria": [
+      "Cleanup logic correctly identifies which .md files to keep",
+      "Files matching source files are kept regardless of creation time",
+      "Only truly stale files (no matching source) are removed",
+      "Logic is tested with existing files scenario",
+      "No data loss occurs on subsequent runs"
+    ],
+    "passes": true,
+    "resolution": "Design decision: All .md files are fully regenerated on each run. Files not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files."
+  },
+  {
+    "id": "BUG-002",
+    "type": "bug",
+    "epic": "Code Quality",
+    "title": "Add validation for empty strip_prefix parameter",
+    "description": "The _get_output_stem function at sync_commands.py:47-53 doesn't validate the strip_prefix parameter. If an empty string is passed, the condition 'if strip_prefix and source_stem.startswith(strip_prefix)' is always False, wasting CPU cycles. Should add validation at the start of the function to check if strip_prefix is an empty string and log a warning.",
+    "acceptance_criteria": [
+      "strip_prefix is validated to be non-empty string when provided",
+      "Appropriate warning or error is logged for empty prefix",
+      "Documentation clarifies expected behavior"
+    ],
+    "passes": false
+  },
+  {
+    "id": "BUG-003",
+    "type": "bug",
+    "epic": "Code Quality",
+    "title": "Catch TOMLDecodeError for malformed TOML files",
+    "description": "The _process_source_file function at sync_commands.py:81-109 only catches OSError when reading TOML files, but tomllib.load() can raise tomllib.TOMLDecodeError (a subclass of ValueError) for malformed TOML, causing the script to crash. Need to add 'except (OSError, ValueError)' to catch both OSError and TOMLDecodeError.",
+    "acceptance_criteria": [
+      "Malformed TOML files are gracefully skipped with appropriate error message",
+      "Script continues processing other files after encountering malformed TOML",
+      "Error handling covers both OSError and TOMLDecodeError"
+    ],
+    "passes": true,
+    "resolution": "Fixed exception handling from 'except OSError' to 'except (OSError, ValueError)' to catch both OSError and TOMLDecodeError."
+  },
+  {
+    "id": "BUG-004",
+    "type": "bug",
+    "epic": "Code Quality",
+    "title": "Add validation for duplicate filenames after prefix stripping",
+    "description": "The extract_prompts_to_md and extract_prompts_to_md_with_description functions don't check for duplicate output filenames. If two source files have the same name after stripping the prefix (e.g., claude_test.toml and test.toml would both become test.md), the second one will overwrite the first, causing data loss. Need to track created_md_filenames in a set and check for duplicates before writing files.",
+    "acceptance_criteria": [
+      "Duplicate output filenames are detected before writing",
+      "Warning is logged when duplicates are found",
+      "User is informed about potential data loss",
+      "Option to skip or rename duplicates is considered"
+    ],
+    "passes": false
+  },
+  {
+    "id": "BUG-006",
+    "type": "bug",
+    "epic": "Code Quality",
+    "title": "Standardize error message formatting",
+    "description": "Error messages in sync_commands.py are inconsistent. Examples: _process_source_file uses 'f\"  Error processing {source_file.name} for {tool_name}: {e}\"' (includes tool name), but safe_remove uses 'f\"  Error removing {file_path.name}: {e}\"' (no context). Standardize to include relevant context (file name, operation, tool) in all error messages.",
+    "acceptance_criteria": [
+      "All error messages follow consistent format",
+      "Error messages include relevant context (file name, operation, tool)",
+      "Error messages are helpful for debugging",
+      "All error logging uses same pattern"
+    ],
+    "passes": false
+  },
+  {
+    "id": "TASK-003",
+    "type": "task",
+    "epic": "Testing",
+    "title": "Add unit tests for sync_commands.py",
+    "description": "Create comprehensive unit tests for sync_commands.py covering prefix stripping logic, file filtering, cleanup logic, and edge cases.",
+    "acceptance_criteria": [
+      "Test suite created with pytest or unittest",
+      "Tests cover prefix stripping with various prefixes",
+      "Tests cover file filtering (claude_ vs shared)",
+      "Tests cover cleanup logic for stale files",
+      "Tests cover edge cases (empty prefix, files named exactly claude_.toml, duplicate filenames)",
+      "All tests pass"
+    ],
+    "passes": false
+  },
+  {
+    "id": "TASK-004",
+    "type": "task",
+    "epic": "Documentation",
+    "title": "Update README.md with claude_ prefix filtering feature",
+    "description": "Document the new claude_ prefix filtering feature in README.md to inform users how to create Claude-specific commands.",
+    "acceptance_criteria": [
+      "README.md explains the claude_ prefix filtering feature",
+      "Examples show how to create Claude-specific commands",
+      "Documentation explains which commands are shared vs Claude-only"
+    ],
+    "passes": true,
+    "resolution": "Added documentation for claude_ prefix filtering, agents folder syncing, and command distribution behavior."
+  },
+  {
+    "id": "TASK-005",
+    "type": "task",
+    "epic": "Code Quality",
+    "title": "Refactor duplicated cleanup logic in sync_commands.py",
+    "description": "Extract the duplicated cleanup logic from extract_prompts_to_md and extract_prompts_to_md_with_description into a separate helper function to reduce code duplication.",
+    "acceptance_criteria": [
+      "Cleanup logic extracted to a reusable function",
+      "Both extraction functions use the new helper function",
+      "Code is more maintainable and DRY",
+      "Tests verify refactored code works correctly"
+    ],
+    "passes": true
+  },
+  {
+    "id": "TASK-006",
+    "type": "task",
+    "epic": "Features",
+    "title": "Add verbose and dry-run modes to sync_commands.py",
+    "description": "Add --verbose flag for detailed logging and --dry-run flag to preview changes without actually making them, improving usability and safety.",
+    "acceptance_criteria": [
+      "--verbose flag shows detailed operations",
+      "--dry-run flag shows what would be changed without making changes",
+      "Help documentation explains both flags",
+      "Both flags work independently and together"
+    ],
+    "passes": false
+  },
+  {
+    "id": "TASK-007",
+    "type": "task",
+    "epic": "Code Quality",
+    "title": "Add type hints to sync_commands.py",
+    "description": "Add type hints to function signatures and variable declarations in sync_commands.py to improve code readability and enable static type checking.",
+    "acceptance_criteria": [
+      "All function signatures have type hints",
+      "Complex variables have type hints",
+      "Code passes mypy or similar type checker",
+      "Type hints are accurate and helpful"
+    ],
+    "passes": false
+  },
+  {
+    "id": "TASK-008",
+    "type": "task",
+    "epic": "Code Quality",
+    "title": "Extract claude_ prefix to module-level constant",
+    "description": "The string 'claude_' is hardcoded in multiple locations in the main() function, making it error-prone to change. Extract to a module-level constant for maintainability.",
+    "acceptance_criteria": [
+      "CLAUDE_PREFIX constant defined at module level",
+      "All hardcoded 'claude_' strings replaced with CLAUDE_PREFIX",
+      "Code is more maintainable and easier to modify",
+      "No functional changes to behavior"
+    ],
+    "passes": true
   }
 ]

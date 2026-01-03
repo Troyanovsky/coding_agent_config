@@ -11,5 +11,19 @@
       "ISSUES.json status is accurate"
     ],
     "passes": true
+  },
+  {
+    "id": "TASK-002",
+    "type": "feature",
+    "epic": "Features",
+    "title": "New progress file feature improvement",
+    "description": "Implement improvements for the new progress file feature to enhance tracking and visibility of task progress.",
+    "acceptance_criteria": [
+      "Progress file structure is defined",
+      "Progress tracking mechanism is implemented",
+      "Progress updates are properly persisted",
+      "Progress can be queried and displayed"
+    ],
+    "passes": false
   }
 ]

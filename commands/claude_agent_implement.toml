@@ -12,18 +12,18 @@ Process:
 2. Prepare work:
    - Create a new feature branch following repository conventions unless explicitly instructed not to
 3. Plan:
-   - Invoke the plan agent to explore the codebase
+   - Invoke the plan agent to explore the codebase thoroughly regarding the task
    - Produce a clear, minimal implementation plan
-   - Confirm the plan with the user only if their original request includes "confirm plan"; otherwise, implement the plan directly.
+   - Confirm the plan with the user only if their original request includes "confirm plan"; otherwise, implement the plan directly
 4. Implement:
    - Apply the plan precisely
    - Limit changes to what is necessary to complete the task
 5. Review:
    - Invoke the code-reviewer agent on your changes
-   - Fix identified bugs and issues
+   - Fix identified bugs and issues until passed
    - Do not introduce unsolicited refactors or improvements
 6. Documentation:
-   - Invoke the docs-updater agent to update relevant documentation
+   - Invoke the docs-updater agent to update relevant documentation (e.g. README.md, AGENTS.md, ISSUES.json, etc if relevant)
 7. Finalize:
    - Commit changes using established commit message conventions
 

@@ -12,19 +12,5 @@
       "Progress can be queried and displayed"
     ],
     "passes": false
-  },
-  {
-    "id": "TASK-007",
-    "type": "task",
-    "epic": "Code Quality",
-    "title": "Add type hints to sync_commands.py",
-    "description": "Add type hints to function signatures and variable declarations in sync_commands.py to improve code readability and enable static type checking.",
-    "acceptance_criteria": [
-      "All function signatures have type hints",
-      "Complex variables have type hints",
-      "Code passes mypy or similar type checker",
-      "Type hints are accurate and helpful"
-    ],
-    "passes": true
   }
 ]

@@ -7,6 +7,14 @@ import sys
 import platform
 from typing import Optional
 
+# Try to import yaml for proper YAML front matter generation
+# Falls back to manual escaping if not available
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
 # Try to import tomli for parsing TOML files (Python 3.10 compatibility)
 try:
     import tomli as tomllib
@@ -77,14 +85,56 @@ def _get_output_stem(source_stem: str, strip_prefix: Optional[str]) -> Optional[
     return source_stem
 
 
+def _escape_yaml_string(value: str) -> str:
+    """
+    Escapes a string for safe use in YAML single-quoted style.
+
+    Handles single quotes and backslashes by doubling them, which is
+    the YAML escaping rule for single-quoted strings.
+    """
+    # In YAML single-quoted strings, single quotes and backslashes are escaped by doubling
+    return value.replace("'", "''").replace("\\", "\\\\")
+
+
+def _format_yaml_description(description: str) -> str:
+    """
+    Formats a description string for YAML front matter.
+
+    Uses PyYAML if available for robust handling of all edge cases including
+    multi-line strings. Falls back to single-quoted strings (no multi-line support).
+    """
+    if HAS_YAML:
+        front_matter = yaml.dump(
+            {"description": description},
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False
+        ).rstrip('\n')
+        return front_matter
+    else:
+        # Fallback: use YAML single-quoted string style
+        # Single quotes in YAML require doubling single quotes and backslashes
+        if '\n' in description:
+            print("  Warning: Multi-line description requires PyYAML for proper YAML escaping.")
+            print("  -> Newlines will be replaced with spaces. Install with: pip install pyyaml")
+            description = description.replace('\n', ' ')
+        escaped_desc = _escape_yaml_string(description)
+        return f"description: '{escaped_desc}'"
+
+
 def _write_prompt_file(target_file: pathlib.Path, prompt_content: str, description: Optional[str] = None) -> None:
     """
     Writes prompt content to a target file, optionally with YAML front matter.
+
+    Uses proper YAML escaping for the description field to handle multi-line
+    strings, special YAML characters (: []{!&*}), and Unicode correctly.
     """
-    with open(target_file, "w", encoding="utf-8") as f:
-        if description is not None:
-            f.write(f"---\ndescription: {json.dumps(description)}\n---\n\n{prompt_content}")
-        else:
+    if description is not None:
+        front_matter = _format_yaml_description(description)
+        with open(target_file, "w", encoding="utf-8") as f:
+            f.write(f"---\n{front_matter}\n---\n\n{prompt_content}")
+    else:
+        with open(target_file, "w", encoding="utf-8") as f:
             f.write(prompt_content)
 
 

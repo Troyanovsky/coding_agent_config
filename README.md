@@ -60,10 +60,13 @@ The `sync_commands.py` script automates the distribution of configs to supported
 
 - Python 3.x
 - `tomli` package (required for Python < 3.11)
+- `pyyaml` package (optional, recommended for proper YAML escaping with multi-line descriptions)
 
 ```bash
-pip install tomli
+pip install tomli pyyaml
 ```
+
+**Note:** `pyyaml` is optional but recommended. The script will function without it by using a fallback escaping method, but multi-line descriptions in command files will have newlines replaced with spaces if PyYAML is not installed.
 
 ### Usage
 

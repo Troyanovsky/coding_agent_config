@@ -33,9 +33,13 @@ def safe_symlink(target, link_name):
         else:
             print(f"  Error linking {target.name}: {e}")
 
-def safe_remove(file_path):
+def safe_remove(file_path, context=None):
     """
     Removes a file or symlink safely, handling potential errors.
+
+    Args:
+        file_path: Path to the file or symlink to remove.
+        context: Optional context string describing why the file is being removed.
     """
     try:
         if file_path.is_symlink() or file_path.is_file():
@@ -43,7 +47,8 @@ def safe_remove(file_path):
             print(f"  Removed {file_path.name}")
             return True
     except OSError as e:
-        print(f"  Error removing {file_path.name}: {e}")
+        context_str = f" ({context})" if context else ""
+        print(f"  Error removing {file_path.name}{context_str}: {e}")
     return False
 
 def _get_output_stem(source_stem, strip_prefix):
@@ -148,7 +153,7 @@ def _cleanup_stale_md_files(target_cmds_dir, toml_files, created_md_files, strip
     """
     for item in target_cmds_dir.glob("*.md"):
         if _should_remove_md_file(item, toml_files, created_md_files, strip_prefix):
-            safe_remove(item)
+            safe_remove(item, context="stale .md file during cleanup")
 
 
 def _cleanup_stale_symlinks(cmd_dir, source_files, source_dir_resolved):
@@ -161,9 +166,9 @@ def _cleanup_stale_symlinks(cmd_dir, source_files, source_dir_resolved):
             try:
                 target = item.resolve()
                 if target.parent == source_dir_resolved and target.name not in source_names:
-                    safe_remove(item)
+                    safe_remove(item, context="stale symlink during cleanup")
             except OSError:
-                safe_remove(item)
+                safe_remove(item, context="broken symlink during cleanup")
 
 
 def _sync_symlinks_to_dir(source_files, cmd_dir, source_dir_resolved):
@@ -239,7 +244,7 @@ def _remove_agents_md_link(root_dir, target_file_name):
     if root_dir.exists():
         link_path = root_dir / target_file_name
         if link_path.exists() or link_path.is_symlink():
-            safe_remove(link_path)
+            safe_remove(link_path, context="AGENTS.md symlink")
 
 
 def _sync_agents_md_links(home):
@@ -336,7 +341,7 @@ def main():
     # Source directory
     source_dir = pathlib.Path("./commands")
     if not source_dir.exists() or not source_dir.is_dir():
-        print(f"Error: Source directory '{source_dir}' not found.")
+        print(f"Error: Source directory '{source_dir}' not found while locating commands directory.")
         return
 
     # Get all .toml files

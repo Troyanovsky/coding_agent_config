@@ -14,33 +14,6 @@
     "passes": false
   },
   {
-    "id": "BUG-002",
-    "type": "bug",
-    "epic": "Code Quality",
-    "title": "Add validation for empty strip_prefix parameter",
-    "description": "The _get_output_stem function at sync_commands.py:47-53 doesn't validate the strip_prefix parameter. If an empty string is passed, the condition 'if strip_prefix and source_stem.startswith(strip_prefix)' is always False, wasting CPU cycles. Should add validation at the start of the function to check if strip_prefix is an empty string and log a warning.",
-    "acceptance_criteria": [
-      "strip_prefix is validated to be non-empty string when provided",
-      "Appropriate warning or error is logged for empty prefix",
-      "Documentation clarifies expected behavior"
-    ],
-    "passes": true
-  },
-  {
-    "id": "BUG-004",
-    "type": "bug",
-    "epic": "Code Quality",
-    "title": "Add validation for duplicate filenames after prefix stripping",
-    "description": "The extract_prompts_to_md and extract_prompts_to_md_with_description functions don't check for duplicate output filenames. If two source files have the same name after stripping the prefix (e.g., claude_test.toml and test.toml would both become test.md), the second one will overwrite the first, causing data loss. Need to track created_md_filenames in a set and check for duplicates before writing files.",
-    "acceptance_criteria": [
-      "Duplicate output filenames are detected before writing",
-      "Warning is logged when duplicates are found",
-      "User is informed about potential data loss",
-      "Option to skip or rename duplicates is considered"
-    ],
-    "passes": false
-  },
-  {
     "id": "BUG-006",
     "type": "bug",
     "epic": "Code Quality",
@@ -52,7 +25,7 @@
       "Error messages are helpful for debugging",
       "All error logging uses same pattern"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "TASK-003",

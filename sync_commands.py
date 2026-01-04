@@ -35,7 +35,9 @@ def safe_symlink(target: pathlib.Path, link_name: pathlib.Path) -> None:
     """
     try:
         os.symlink(target, link_name)
-        print(f"  Linked {target.name} -> {link_name.parent.name}/{link_name.name}")
+        # Show full relative path from home directory (e.g., ".claude/agents/file.md")
+        link_rel_path = link_name.relative_to(pathlib.Path.home())
+        print(f"  Linked {target.name} -> {link_rel_path}")
     except OSError as e:
         # Check for Windows specific error: [WinError 1314] A required privilege is not held by the client
         if platform.system() == "Windows" and getattr(e, 'winerror', 0) == 1314:
@@ -233,7 +235,8 @@ def _sync_symlinks_to_dir(source_files: list[pathlib.Path], cmd_dir: pathlib.Pat
     for source_file in source_files:
         link_name = cmd_dir / source_file.name
         if link_name.exists() or link_name.is_symlink():
-            print(f"  Skipping {source_file.name}: symlink already exists in {cmd_dir.name}")
+            link_rel_path = link_name.relative_to(pathlib.Path.home())
+            print(f"  Skipping {source_file.name}: symlink already exists in {link_rel_path.parent}")
             continue
         safe_symlink(source_file.resolve(), link_name)
 

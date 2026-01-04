@@ -7,25 +7,32 @@ The task description is the source of truth. Do not add features or enhancements
 Process:
 1. Check repository state:
    - Run `git fetch` and `git status`
-   - Confirm whether `git pull` is needed
-   - Ensure the working tree is clean
+   - If the working tree is not clean, stop and ask the user for confirmation before proceeding (stash/commit/discard)
+   - Update your local tracked branch using the repo convention (prefer `git fetch` + `git rebase` or `git merge --ff-only` onto the tracked branch; avoid risky pulls)
 2. Prepare work:
    - Create a new feature branch following repository conventions unless explicitly instructed not to
-3. Plan:
+3. Reproduce / establish baseline:
+   - Reproduce the issue or run the relevant command(s) to establish a baseline (tests, build, lint, minimal repro) if relevant
+   - Record the observed failure (error message, failing test name, steps to reproduce) and confirm scope matches the task
+4. Plan:
    - Invoke the plan agent to explore the codebase thoroughly regarding the task
    - Produce a clear, minimal implementation plan
    - Confirm the plan with the user only if their original request includes "confirm plan"; otherwise, implement the plan directly
-4. Implement:
+5. Implement:
    - Apply the plan precisely
    - Limit changes to what is necessary to complete the task
-5. Review:
+6. Validate:
+   - Run the smallest sufficient validation suite to prove the fix (targeted tests first, then broader suite if warranted)
+   - Ensure formatting/lint/typecheck (as applicable) pass and the original repro no longer fails
+7. Review:
    - Invoke the code-reviewer agent on your changes
    - Fix identified bugs and issues until passed
    - Do not introduce unsolicited refactors or improvements
-6. Documentation:
+8. Documentation:
    - Invoke the docs-updater agent to update relevant documentation (e.g. README.md, AGENTS.md, ISSUES.json, etc if relevant)
-7. Finalize:
-   - Commit changes using established commit message conventions
+9. Finalize:
+   - Run pre-commit hygiene (formatters/linters/pre-commit hooks) before committing if any
+   - Commit changes using following established conventions
 
 Operating rules:
 - Prefer correctness over cleverness

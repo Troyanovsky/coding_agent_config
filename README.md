@@ -11,6 +11,7 @@ This repository serves as a centralized source of truth for coding agent configu
     - Documentation standards.
 - **`commands/`**: A directory containing custom commands defined in TOML format:
     - `architect.toml`: ARCHITECT a complete system architecture and implementation plan
+    - `claude_agent_implement.toml`: (Claude-only) Implement tasks with baseline reproduction and validation
     - `debug.toml`: DEBUG software bugs
     - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
     - `edge_case.toml`: Generate product & technical edge cases
@@ -21,12 +22,18 @@ This repository serves as a centralized source of truth for coding agent configu
     - `start_task.toml`: Prepare before starting to make sure git is clean
     - `update_doc.toml`: Update documentation based on code changes
     - Each `.toml` file defines a command with a `description` and a `prompt`.
+- **`agents/`**: Custom agent definitions for Claude Code:
+    - `code-reviewer.md`: Specialized agent for reviewing code quality
+    - `docs-updater.md`: Agent for keeping documentation accurate
 - **`mcp.json`**: Configuration file for Model Context Protocol (MCP) servers, including:
-    - `context7`: HTTP-based MCP server for context management
+    - `context7`: HTTP-based MCP server for retrieving up-to-date library documentation
     - `figma-desktop`: Figma desktop integration via local HTTP endpoint
-    - `playwright`: Browser automation and testing capabilities
-    - `chrome-devtools`: Chrome DevTools integration for debugging
+    - `playwright`: Browser automation and testing capabilities (via npx)
+    - `chrome-devtools`: Chrome DevTools integration for debugging (via npx)
 - **`sync_commands.py`**: A utility script to deploy these configurations to the respective agent directories in your home folder.
+- **`play_notification.py`**: Cross-platform script to play audio notifications.
+- **`tests/`**: Unit tests for sync_commands.py functionality.
+- **`positive-notification.wav`**: Audio file for notification playback.
 
 ## Synchronization Script (`sync_commands.py`)
 
@@ -99,3 +106,36 @@ Detailed instructions for the agent.
 ```
 
 3.  Run `python3 sync_commands.py` to apply the changes.
+
+## Running Tests
+
+Unit tests are provided to verify the functionality of `sync_commands.py`, including YAML front matter generation, symlink validation, and cleanup operations.
+
+```bash
+# Run all tests
+python3 -m pytest tests/
+
+# Run with verbose output
+python3 -m pytest tests/ -v
+
+# Run specific test class
+python3 -m pytest tests/test_sync_commands.py::TestFormatYamlDescription -v
+
+# Run using unittest directly
+python3 -m unittest tests.test_sync_commands
+```
+
+## Audio Notifications
+
+The `play_notification.py` script plays the `positive-notification.wav` audio file. It works from any directory and supports:
+
+- **Windows**: Built-in `winsound` module
+- **macOS/Linux**: Requires `simpleaudio` or `pygame`
+
+```bash
+# Install audio playback library (macOS/Linux)
+pip install simpleaudio
+
+# Play the notification sound
+python3 play_notification.py
+```

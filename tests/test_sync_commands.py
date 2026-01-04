@@ -36,14 +36,14 @@ class TestEscapeYamlString(unittest.TestCase):
         self.assertEqual(result, "''quoted'' text")
 
     def test_backslash(self):
-        """Backslashes should be doubled."""
+        """Backslashes should remain unchanged in YAML single-quoted style."""
         result = sync_commands._escape_yaml_string(r"path\to\file")
-        self.assertEqual(result, r"path\\to\\file")
+        self.assertEqual(result, r"path\to\file")
 
     def test_combined_quotes_and_backslashes(self):
-        """Both quotes and backslashes should be escaped."""
+        """Only quotes should be escaped; backslashes remain unchanged."""
         result = sync_commands._escape_yaml_string(r"It's a \path")
-        self.assertEqual(result, r"It''s a \\path")
+        self.assertEqual(result, r"It''s a \path")
 
 
 class TestFormatYamlDescription(unittest.TestCase):
@@ -100,6 +100,49 @@ class TestFormatYamlDescription(unittest.TestCase):
         """Empty strings should be handled."""
         result = sync_commands._format_yaml_description("")
         self.assertIn("description:", result)
+
+
+class TestFormatYamlDescriptionWithoutPyYaml(unittest.TestCase):
+    """Test _format_yaml_description behavior without PyYAML."""
+
+    def setUp(self):
+        self.original_has_yaml = sync_commands.HAS_YAML
+        sync_commands.HAS_YAML = False
+
+    def tearDown(self):
+        sync_commands.HAS_YAML = self.original_has_yaml
+
+    def test_multiline_description_replaces_newlines(self):
+        """Multi-line descriptions are flattened when PyYAML is unavailable."""
+        description = "Line one\nLine two"
+        result = sync_commands._format_yaml_description(description)
+        self.assertIn("description:", result)
+        self.assertNotIn("\n", result)
+        self.assertIn("Line one Line two", result)
+
+
+class TestGetOutputStem(unittest.TestCase):
+    """Test the _get_output_stem helper function."""
+
+    def test_no_strip_prefix(self):
+        """When no prefix is provided, the stem is unchanged."""
+        result = sync_commands._get_output_stem("example", None)
+        self.assertEqual(result, "example")
+
+    def test_strip_prefix(self):
+        """A matching prefix should be stripped."""
+        result = sync_commands._get_output_stem("claude_command", "claude_")
+        self.assertEqual(result, "command")
+
+    def test_strip_prefix_empty_string(self):
+        """Empty prefix should behave like None."""
+        result = sync_commands._get_output_stem("example", "")
+        self.assertEqual(result, "example")
+
+    def test_strip_prefix_to_empty_returns_none(self):
+        """If stripping removes the full stem, return None."""
+        result = sync_commands._get_output_stem("claude_", "claude_")
+        self.assertIsNone(result)
 
 
 class TestWritePromptFile(unittest.TestCase):
@@ -308,6 +351,164 @@ class TestSymlinkValidation(unittest.TestCase):
         # Verify both symlinks are correct
         self.assertTrue(os.path.samefile(link1.resolve(), self.file1))
         self.assertTrue(os.path.samefile(link2.resolve(), self.file2))
+
+
+class TestCleanupHelpers(unittest.TestCase):
+    """Test cleanup helpers for .md files and symlinks."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.target_dir = Path(self.test_dir) / "target"
+        self.target_dir.mkdir()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_should_remove_md_file_keeps_recent_output(self):
+        """Freshly created .md files should be kept."""
+        toml_files = [Path("command.toml")]
+        created = {"command.md"}
+        md_file = Path("command.md")
+        result = sync_commands._should_remove_md_file(md_file, toml_files, created, None)
+        self.assertFalse(result)
+
+    def test_should_remove_md_file_removes_stale_output(self):
+        """Stale .md files should be removed."""
+        toml_files = [Path("command.toml")]
+        created = set()
+        md_file = Path("command.md")
+        result = sync_commands._should_remove_md_file(md_file, toml_files, created, None)
+        self.assertTrue(result)
+
+    def test_should_remove_md_file_removes_old_prefix_format(self):
+        """Old format (unstripped) names should be removed when prefix is used."""
+        toml_files = [Path("claude_command.toml")]
+        created = {"command.md"}
+        md_file = Path("claude_command.md")
+        result = sync_commands._should_remove_md_file(md_file, toml_files, created, "claude_")
+        self.assertTrue(result)
+
+    def test_cleanup_stale_md_files(self):
+        """Cleanup removes stale .md files while keeping fresh ones."""
+        toml_files = [Path("keep.toml"), Path("remove.toml")]
+        created = {"keep.md"}
+        keep_file = self.target_dir / "keep.md"
+        remove_file = self.target_dir / "remove.md"
+        orphan_file = self.target_dir / "orphan.md"
+        keep_file.write_text("keep")
+        remove_file.write_text("remove")
+        orphan_file.write_text("orphan")
+
+        sync_commands._cleanup_stale_md_files(self.target_dir, toml_files, created, None)
+
+        self.assertTrue(keep_file.exists())
+        self.assertFalse(remove_file.exists())
+        self.assertFalse(orphan_file.exists())
+
+    def test_cleanup_stale_symlinks(self):
+        """Cleanup removes symlinks pointing to missing source files."""
+        source_dir = Path(self.test_dir) / "source"
+        source_dir.mkdir()
+        source_file = source_dir / "keep.txt"
+        source_file.write_text("content")
+        other_dir = Path(self.test_dir) / "other"
+        other_dir.mkdir()
+        other_file = other_dir / "other.txt"
+        other_file.write_text("content")
+
+        kept_link = self.target_dir / "keep.txt"
+        stale_link = self.target_dir / "stale.txt"
+        external_link = self.target_dir / "external.txt"
+        os.symlink(source_file, kept_link)
+        os.symlink(source_dir / "missing.txt", stale_link)
+        os.symlink(other_file, external_link)
+
+        sync_commands._cleanup_stale_symlinks(self.target_dir, [source_file], source_dir.resolve())
+
+        self.assertTrue(kept_link.exists())
+        self.assertFalse(stale_link.exists())
+        self.assertTrue(external_link.exists())
+
+
+class TestSymlinkTargets(unittest.TestCase):
+    """Test syncing symlinks to target directories."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.source_dir = Path(self.test_dir) / "source"
+        self.source_dir.mkdir()
+        self.root_dir = Path(self.test_dir) / "root"
+        self.root_dir.mkdir()
+        self.cmd_dir = self.root_dir / "commands"
+        self.cmd_dir.mkdir()
+        self.source_file = self.source_dir / "command.toml"
+        self.source_file.write_text("prompt = \"hi\"")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_sync_symlink_targets_creates_links(self):
+        """Symlinks should be created in existing target directories."""
+        sync_commands._sync_symlink_targets(
+            [self.source_file],
+            self.source_dir,
+            [(self.root_dir, self.cmd_dir)],
+        )
+
+        link_path = self.cmd_dir / self.source_file.name
+        self.assertTrue(link_path.is_symlink())
+        self.assertTrue(os.path.samefile(link_path.resolve(), self.source_file))
+
+
+class TestProcessSourceFile(unittest.TestCase):
+    """Test _process_source_file behavior."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.source_dir = Path(self.test_dir) / "source"
+        self.target_dir = Path(self.test_dir) / "target"
+        self.source_dir.mkdir()
+        self.target_dir.mkdir()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_process_source_file_writes_prompt(self):
+        """Prompt content should be written to a .md file."""
+        source_file = self.source_dir / "command.toml"
+        source_file.write_text('prompt = "Hello"\n')
+
+        result = sync_commands._process_source_file(
+            source_file,
+            self.target_dir,
+            "tool",
+            strip_prefix=None,
+            include_description=False,
+        )
+
+        self.assertEqual(result, "command.md")
+        target_file = self.target_dir / "command.md"
+        self.assertTrue(target_file.exists())
+        self.assertEqual(target_file.read_text(encoding="utf-8"), "Hello")
+
+    def test_process_source_file_missing_prompt(self):
+        """Files without prompt should be skipped."""
+        source_file = self.source_dir / "missing.toml"
+        source_file.write_text('description = "No prompt"\n')
+
+        result = sync_commands._process_source_file(
+            source_file,
+            self.target_dir,
+            "tool",
+            strip_prefix=None,
+            include_description=False,
+        )
+
+        self.assertIsNone(result)
+        self.assertFalse((self.target_dir / "missing.md").exists())
 
 
 if __name__ == "__main__":

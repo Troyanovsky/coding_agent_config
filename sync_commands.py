@@ -1,3 +1,4 @@
+"""Sync command prompt files and related symlinks for multiple AI tool directories."""
 from __future__ import annotations
 
 import json
@@ -95,11 +96,10 @@ def _escape_yaml_string(value: str) -> str:
     """
     Escapes a string for safe use in YAML single-quoted style.
 
-    Handles single quotes and backslashes by doubling them, which is
-    the YAML escaping rule for single-quoted strings.
+    In YAML single-quoted scalars, only single quotes are escaped by doubling.
+    Backslashes are literal and should not be modified.
     """
-    # In YAML single-quoted strings, single quotes and backslashes are escaped by doubling
-    return value.replace("'", "''").replace("\\", "\\\\")
+    return value.replace("'", "''")
 
 
 def _format_yaml_description(description: str) -> str:

@@ -24,6 +24,14 @@
                 "-y",
                 "chrome-devtools-mcp@latest"
             ]
+        },
+        "tavily-remote": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "mcp-remote",
+                "https://mcp.tavily.com/mcp/?tavilyApiKey=<your-api-key>"
+            ]
         }
     }
 }

@@ -36,8 +36,12 @@ def safe_symlink(target: pathlib.Path, link_name: pathlib.Path) -> None:
     try:
         os.symlink(target, link_name)
         # Show full relative path from home directory (e.g., ".claude/agents/file.md")
-        link_rel_path = link_name.relative_to(pathlib.Path.home())
-        print(f"  Linked {target.name} -> {link_rel_path}")
+        try:
+            link_rel_path = link_name.relative_to(pathlib.Path.home())
+            print(f"  Linked {target.name} -> {link_rel_path}")
+        except ValueError:
+            # Path not relative to home (e.g., in tests)
+            print(f"  Linked {target.name} -> {link_name.parent.name}/{link_name.name}")
     except OSError as e:
         # Check for Windows specific error: [WinError 1314] A required privilege is not held by the client
         if platform.system() == "Windows" and getattr(e, 'winerror', 0) == 1314:
@@ -234,11 +238,43 @@ def _sync_symlinks_to_dir(source_files: list[pathlib.Path], cmd_dir: pathlib.Pat
 
     for source_file in source_files:
         link_name = cmd_dir / source_file.name
+        expected_target = source_file.resolve()
+
+        # Check if link already exists
         if link_name.exists() or link_name.is_symlink():
-            link_rel_path = link_name.relative_to(pathlib.Path.home())
-            print(f"  Skipping {source_file.name}: symlink already exists in {link_rel_path.parent}")
-            continue
-        safe_symlink(source_file.resolve(), link_name)
+            # Verify existing symlink points to correct target
+            try:
+                current_target = link_name.resolve()
+                # Use os.path.samefile for robust cross-platform path comparison
+                # This handles /var -> /private/var symlinks on macOS and similar cases
+                if os.path.samefile(current_target, expected_target):
+                    # Correct symlink already exists - skip it
+                    try:
+                        link_rel_path = link_name.relative_to(pathlib.Path.home())
+                        print(f"  Skipping {source_file.name}: symlink already exists in {link_rel_path.parent}")
+                    except ValueError:
+                        # Path not relative to home (e.g., in tests), use parent dir name
+                        print(f"  Skipping {source_file.name}: symlink already exists in {link_name.parent.name}")
+                    continue
+                else:
+                    # Incorrect symlink - remove and recreate
+                    try:
+                        link_rel_path = link_name.relative_to(pathlib.Path.home())
+                        print(f"  Replacing incorrect symlink {source_file.name} in {link_rel_path.parent}")
+                    except ValueError:
+                        print(f"  Replacing incorrect symlink {source_file.name} in {link_name.parent.name}")
+                    safe_remove(link_name, context="incorrect symlink")
+            except OSError:
+                # Broken symlink - remove and recreate
+                try:
+                    link_rel_path = link_name.relative_to(pathlib.Path.home())
+                    print(f"  Replacing broken symlink {source_file.name} in {link_rel_path.parent}")
+                except ValueError:
+                    print(f"  Replacing broken symlink {source_file.name} in {link_name.parent.name}")
+                safe_remove(link_name, context="broken symlink")
+
+        # Create new symlink
+        safe_symlink(expected_target, link_name)
 
     _cleanup_stale_symlinks(cmd_dir, source_files, source_dir_resolved)
 

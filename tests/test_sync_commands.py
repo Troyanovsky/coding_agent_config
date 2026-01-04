@@ -189,5 +189,108 @@ class TestWritePromptFile(unittest.TestCase):
         self.assertIn("description:", result)
 
 
+class TestSymlinkValidation(unittest.TestCase):
+    """Test symlink target verification and replacement logic."""
+
+    def setUp(self):
+        """Create temporary directories and files for testing."""
+        self.test_dir = tempfile.mkdtemp()
+        self.source_dir = Path(self.test_dir) / "source"
+        self.target_dir = Path(self.test_dir) / "target"
+        self.source_dir.mkdir()
+        self.target_dir.mkdir()
+
+        # Create test source files
+        self.file1 = self.source_dir / "test1.txt"
+        self.file2 = self.source_dir / "test2.txt"
+        self.file1.write_text("content1")
+        self.file2.write_text("content2")
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_correct_symlink_is_skipped(self):
+        """Existing symlinks pointing to correct targets should be skipped."""
+        source_files = [self.file1]
+        link_name = self.target_dir / "test1.txt"
+
+        # Create correct symlink
+        os.symlink(self.file1, link_name)
+
+        # Sync should skip existing correct symlink
+        sync_commands._sync_symlinks_to_dir(source_files, self.target_dir, self.source_dir.resolve())
+
+        # Verify symlink still points to correct target
+        self.assertTrue(link_name.is_symlink())
+        self.assertTrue(os.path.samefile(link_name.resolve(), self.file1))
+
+    def test_incorrect_symlink_is_replaced(self):
+        """Symlinks pointing to wrong targets should be replaced."""
+        source_files = [self.file1]
+        link_name = self.target_dir / "test1.txt"
+
+        # Create incorrect symlink pointing to file2
+        os.symlink(self.file2, link_name)
+
+        # Sync should replace incorrect symlink
+        sync_commands._sync_symlinks_to_dir(source_files, self.target_dir, self.source_dir.resolve())
+
+        # Verify symlink now points to correct target
+        self.assertTrue(link_name.is_symlink())
+        self.assertTrue(os.path.samefile(link_name.resolve(), self.file1))
+
+    def test_broken_symlink_is_replaced(self):
+        """Broken symlinks should be replaced with correct ones."""
+        source_files = [self.file1]
+        link_name = self.target_dir / "test1.txt"
+
+        # Create broken symlink pointing to non-existent file
+        nonexistent = self.source_dir / "nonexistent.txt"
+        os.symlink(nonexistent, link_name)
+
+        # Sync should replace broken symlink
+        sync_commands._sync_symlinks_to_dir(source_files, self.target_dir, self.source_dir.resolve())
+
+        # Verify symlink now points to correct target
+        self.assertTrue(link_name.is_symlink())
+        self.assertTrue(os.path.samefile(link_name.resolve(), self.file1))
+
+    def test_regular_file_is_replaced(self):
+        """Regular files (not symlinks) should be replaced with symlinks."""
+        source_files = [self.file1]
+        link_name = self.target_dir / "test1.txt"
+
+        # Create regular file with different content
+        link_name.write_text("wrong content")
+
+        # Sync should replace regular file with symlink
+        sync_commands._sync_symlinks_to_dir(source_files, self.target_dir, self.source_dir.resolve())
+
+        # Verify it's now a symlink pointing to correct target
+        self.assertTrue(link_name.is_symlink())
+        self.assertTrue(os.path.samefile(link_name.resolve(), self.file1))
+
+    def test_multiple_symlinks_mixed_states(self):
+        """Handle multiple symlinks with different states correctly."""
+        source_files = [self.file1, self.file2]
+
+        # Create correct symlink for file1
+        link1 = self.target_dir / "test1.txt"
+        os.symlink(self.file1, link1)
+
+        # Create incorrect symlink for file2 (points to file1)
+        link2 = self.target_dir / "test2.txt"
+        os.symlink(self.file1, link2)
+
+        # Sync should handle both correctly
+        sync_commands._sync_symlinks_to_dir(source_files, self.target_dir, self.source_dir.resolve())
+
+        # Verify both symlinks are correct
+        self.assertTrue(os.path.samefile(link1.resolve(), self.file1))
+        self.assertTrue(os.path.samefile(link2.resolve(), self.file2))
+
+
 if __name__ == "__main__":
     unittest.main()

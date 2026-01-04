@@ -1,6 +1,6 @@
 description = "Maintain issue tracker JSON file in doc/docs folder."
 prompt = """Maintain an issue tracker JSON (ISSUES.json) file in the project's documentation folder (doc or docs, whichever exists or is conventional). Each issue should have the following fields:
-- id: str, in the format of <TYPE>-<NNN>, e.g. BUG-012
+- id: str, in the format of <TYPE>-<YYMMDD>-<NN>, e.g. BUG-260102-001
 - type: str, one of "story" | "bug" | "task" | "change"
 - epic: str, high-level category (e.g. "Auth", "Payments")
 - title: str, short summary

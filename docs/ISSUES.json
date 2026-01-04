@@ -1,23 +1,7 @@
 [
   {
-    "id": "BUG-001",
-    "type": "bug",
-    "epic": "Bug Fixes",
-    "title": "Incorrect YAML escaping in front matter generation",
-    "description": "The _write_prompt_file function uses json.dumps() to escape the description field in YAML front matter. This is incorrect YAML syntax and will break with multi-line descriptions, special YAML characters (: [,] {!&*}), or certain Unicode characters.",
-    "acceptance_criteria": [
-      "YAML front matter uses proper YAML escaping",
-      "Multi-line descriptions are handled correctly",
-      "Special YAML characters are properly escaped",
-      "Unit tests cover edge cases for description content"
-    ],
-    "passes": true,
-    "file": "sync_commands.py",
-    "line": 121
-  },
-  {
-    "id": "TASK-002",
-    "type": "feature",
+    "id": "STORY-260104-001",
+    "type": "story",
     "epic": "Features",
     "title": "New progress file feature improvement",
     "description": "Implement improvements for the new progress file feature to enhance tracking and visibility of task progress.",

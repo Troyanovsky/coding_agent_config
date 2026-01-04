@@ -12,34 +12,5 @@
       "Progress can be queried and displayed"
     ],
     "passes": false
-  },
-  {
-    "id": "BUG-260104-002",
-    "type": "bug",
-    "epic": "Bug Fixes",
-    "title": "Potential PyYAML document marker duplication",
-    "description": "In sync_commands.py line 108-114, yaml.dump() may prefix output with --- document marker depending on content/version. This would create duplicate --- markers when _write_prompt_file adds its own delimiter.",
-    "acceptance_criteria": [
-      "PyYAML output is checked for leading --- marker",
-      "Duplicate markers are prevented",
-      "Tests verify YAML front matter is correctly formatted"
-    ],
-    "passes": true,
-    "file": "sync_commands.py",
-    "line": 108
-  },
-  {
-    "id": "TASK-260104-003",
-    "type": "task",
-    "epic": "Code Quality",
-    "title": "Remove redundant is_symlink() check in _cleanup_stale_symlinks",
-    "description": "In sync_commands.py line 220-225, the is_symlink() check in the except OSError block is redundant since the loop at line 220 already filters for symlinks only.",
-    "acceptance_criteria": [
-      "Redundant is_symlink() check is removed or clarified",
-      "Code clarity is improved"
-    ],
-    "passes": false,
-    "file": "sync_commands.py",
-    "line": 220
   }
 ]

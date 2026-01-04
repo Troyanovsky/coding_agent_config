@@ -188,6 +188,24 @@ class TestWritePromptFile(unittest.TestCase):
         self.assertIn("---", result)
         self.assertIn("description:", result)
 
+    def test_write_no_duplicate_yaml_markers(self):
+        """PyYAML output should not create duplicate --- markers."""
+        test_file = Path(self.test_dir) / "test.md"
+        content = "# Test"
+        description = "A description"
+
+        sync_commands._write_prompt_file(test_file, content, description)
+
+        with open(test_file, "r", encoding="utf-8") as f:
+            result = f.read()
+
+        # Should start with single --- delimiter, not duplicated
+        self.assertTrue(result.startswith("---\n"))
+        # Should not have --- immediately followed by another ---
+        self.assertNotIn("---\n---", result)
+        # Should have proper YAML front matter structure
+        self.assertIn("\n---\n\n", result)
+
 
 class TestSymlinkValidation(unittest.TestCase):
     """Test symlink target verification and replacement logic."""

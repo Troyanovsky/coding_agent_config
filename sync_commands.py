@@ -116,9 +116,17 @@ def _format_yaml_description(description: str) -> str:
             allow_unicode=True,
             sort_keys=False
         ).rstrip('\n')
+        # PyYAML may prefix output with --- document marker; strip it to avoid
+        # duplication when _write_prompt_file adds its own --- delimiters.
+        if front_matter.startswith('---'):
+            front_matter = front_matter[3:]
+            # Remove only the single newline that follows the marker
+            if front_matter.startswith('\n'):
+                front_matter = front_matter[1:]
         return front_matter
     else:
-        # Fallback: use YAML single-quoted string style
+        # Fallback: use YAML single-quoted string style.
+        # Note: Manual construction doesn't add --- marker, so no stripping needed.
         # Single quotes in YAML require doubling single quotes and backslashes
         if '\n' in description:
             print("  Warning: Multi-line description requires PyYAML for proper YAML escaping.")

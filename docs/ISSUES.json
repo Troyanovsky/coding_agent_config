@@ -14,21 +14,6 @@
     "passes": false
   },
   {
-    "id": "BUG-260104-001",
-    "type": "bug",
-    "epic": "Bug Fixes",
-    "title": "Symlink target not verified in _sync_symlinks_to_dir",
-    "description": "In sync_commands.py line 237-240, when a symlink already exists, the code skips it without verifying it points to the correct target. If a symlink exists but points to the wrong file, it will remain incorrect.",
-    "acceptance_criteria": [
-      "Existing symlinks are verified to point to correct targets",
-      "Incorrect symlinks are replaced with correct ones",
-      "Tests cover symlink target validation scenarios"
-    ],
-    "passes": true,
-    "file": "sync_commands.py",
-    "line": 237
-  },
-  {
     "id": "BUG-260104-002",
     "type": "bug",
     "epic": "Bug Fixes",
@@ -39,7 +24,7 @@
       "Duplicate markers are prevented",
       "Tests verify YAML front matter is correctly formatted"
     ],
-    "passes": false,
+    "passes": true,
     "file": "sync_commands.py",
     "line": 108
   },

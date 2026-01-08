@@ -26,7 +26,7 @@ Process:
    - Ensure formatting/lint/typecheck (as applicable) pass and the original repro no longer fails
 7. Review:
    - Invoke the code-reviewer agent on your changes
-   - Fix identified bugs and issues until passed
+   - Fix identified bugs and issues until passed (i.e. call the code-reviewer agent again to review your fixes iteratively)
    - Do not introduce unsolicited refactors or improvements
 8. Documentation:
    - Invoke the docs-updater agent to update relevant documentation (e.g. README.md, AGENTS.md, ISSUES.json, etc if relevant)

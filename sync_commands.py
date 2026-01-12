@@ -102,16 +102,16 @@ def _escape_yaml_string(value: str) -> str:
     return value.replace("'", "''")
 
 
-def _format_yaml_description(description: str) -> str:
+def _format_yaml_dict(data: dict) -> str:
     """
-    Formats a description string for YAML front matter.
+    Formats a dict for YAML front matter.
 
     Uses PyYAML if available for robust handling of all edge cases including
-    multi-line strings. Falls back to single-quoted strings (no multi-line support).
+    multi-line strings. Falls back to manual construction for simple cases.
     """
     if HAS_YAML:
         front_matter = yaml.dump(
-            {"description": description},
+            data,
             default_flow_style=False,
             allow_unicode=True,
             sort_keys=False
@@ -125,26 +125,39 @@ def _format_yaml_description(description: str) -> str:
                 front_matter = front_matter[1:]
         return front_matter
     else:
-        # Fallback: use YAML single-quoted string style.
-        # Note: Manual construction doesn't add --- marker, so no stripping needed.
-        # Single quotes in YAML require doubling single quotes and backslashes
-        if '\n' in description:
-            print("  Warning: Multi-line description requires PyYAML for proper YAML escaping.")
-            print("  -> Newlines will be replaced with spaces. Install with: pip install pyyaml")
-            description = description.replace('\n', ' ')
-        escaped_desc = _escape_yaml_string(description)
-        return f"description: '{escaped_desc}'"
+        # Fallback for simple cases
+        lines = []
+        for key, value in data.items():
+            if key == "description" and isinstance(value, str):
+                if '\n' in value:
+                    print("  Warning: Multi-line description requires PyYAML for proper YAML escaping.")
+                    print("  -> Newlines will be replaced with spaces. Install with: pip install pyyaml")
+                    value = value.replace('\n', ' ')
+                lines.append(f"description: '{_escape_yaml_string(value)}'")
+            else:
+                # Handle boolean and other types (no quotes for non-strings)
+                lines.append(f"{key}: {value}")
+        return '\n'.join(lines)
 
 
-def _write_prompt_file(target_file: pathlib.Path, prompt_content: str, description: Optional[str] = None) -> None:
+def _write_prompt_file(target_file: pathlib.Path, prompt_content: str, description: Optional[str] = None, extra_fields: Optional[dict] = None) -> None:
     """
     Writes prompt content to a target file, optionally with YAML front matter.
 
-    Uses proper YAML escaping for the description field to handle multi-line
-    strings, special YAML characters (: []{!&*}), and Unicode correctly.
+    Args:
+        target_file: Path to the target file
+        prompt_content: The prompt content to write
+        description: Optional description for YAML front matter
+        extra_fields: Optional dict of additional YAML fields (e.g., {'disable-model-invocation': True})
     """
-    if description is not None:
-        front_matter = _format_yaml_description(description)
+    if description is not None or extra_fields is not None:
+        front_matter_dict = {}
+        if description is not None:
+            front_matter_dict["description"] = description
+        if extra_fields is not None:
+            front_matter_dict.update(extra_fields)
+
+        front_matter = _format_yaml_dict(front_matter_dict)
         with open(target_file, "w", encoding="utf-8") as f:
             f.write(f"---\n{front_matter}\n---\n\n{prompt_content}")
     else:
@@ -152,7 +165,7 @@ def _write_prompt_file(target_file: pathlib.Path, prompt_content: str, descripti
             f.write(prompt_content)
 
 
-def _process_source_file(source_file: pathlib.Path, target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str], include_description: bool) -> Optional[str]:
+def _process_source_file(source_file: pathlib.Path, target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str], include_description: bool, extra_fields: Optional[dict] = None) -> Optional[str]:
     """
     Processes a single source .toml file and extracts its prompt to a .md file.
     Returns the .md filename if successful, None otherwise.
@@ -176,7 +189,7 @@ def _process_source_file(source_file: pathlib.Path, target_cmds_dir: pathlib.Pat
         target_file = target_cmds_dir / md_filename
         description = data.get("description", "") if include_description else None
 
-        _write_prompt_file(target_file, prompt_content, description)
+        _write_prompt_file(target_file, prompt_content, description, extra_fields)
 
         subdir = "prompts" if include_description else "commands"
         print(f"  Extracted prompt from {source_file.name} -> {tool_name}/{subdir}/{md_filename}")
@@ -385,52 +398,25 @@ def _sync_agents_md_links(home: pathlib.Path) -> None:
             _remove_agents_md_link(target_roo_rules, "AGENTS.md")
 
 
-def extract_prompts_to_md(toml_files: list[pathlib.Path], target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str] = None) -> None:
+def extract_prompts_to_md(toml_files: list[pathlib.Path], target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str] = None, include_description: bool = False, extra_fields: Optional[dict] = None) -> None:
     """
     Extracts prompts from .toml files to .md files in the target directory,
-    and removes stale .md files that no longer have corresponding source files.
+    optionally with YAML front matter descriptions and extra fields.
 
     Args:
         toml_files: List of source .toml file paths
         target_cmds_dir: Target directory for .md files
         tool_name: Name of the tool (for logging purposes)
         strip_prefix: Optional prefix to strip from output filenames
+        include_description: If True, includes YAML front matter with description
+        extra_fields: Optional dict of additional YAML fields
     """
     print(f"Processing {tool_name}...")
     target_cmds_dir.mkdir(parents=True, exist_ok=True)
 
     created_md_files: set[str] = set()
     for source_file in toml_files:
-        result = _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, include_description=False)
-        if result:
-            created_md_files.add(result)
-
-    _cleanup_stale_md_files(target_cmds_dir, toml_files, created_md_files, strip_prefix)
-
-def extract_prompts_to_md_with_description(toml_files: list[pathlib.Path], target_cmds_dir: pathlib.Path, tool_name: str, strip_prefix: Optional[str] = None) -> None:
-    """
-    Extracts prompts and descriptions from .toml files to .md files with YAML front matter,
-    and removes stale .md files that no longer have corresponding source files.
-
-    The output format is:
-    ---
-    description: {description}
-    ---
-
-    {prompt}
-
-    Args:
-        toml_files: List of source .toml file paths
-        target_cmds_dir: Target directory for .md files
-        tool_name: Name of the tool (for logging purposes)
-        strip_prefix: Optional prefix to strip from output filenames
-    """
-    print(f"Processing {tool_name}...")
-    target_cmds_dir.mkdir(parents=True, exist_ok=True)
-
-    created_md_files: set[str] = set()
-    for source_file in toml_files:
-        result = _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, include_description=True)
+        result = _process_source_file(source_file, target_cmds_dir, tool_name, strip_prefix, include_description, extra_fields)
         if result:
             created_md_files.add(result)
 
@@ -477,7 +463,10 @@ def main() -> None:
 
     # 2. Handle Claude (Extraction) - all files, strip claude_ prefix
     if target_claude_root.exists():
-        extract_prompts_to_md(toml_files, target_claude_cmds, ".claude", strip_prefix=CLAUDE_PREFIX)
+        extract_prompts_to_md(toml_files, target_claude_cmds, ".claude",
+                             strip_prefix=CLAUDE_PREFIX,
+                             include_description=True,
+                             extra_fields={"disable-model-invocation": True})
     else:
         print("Skipping .claude: directory does not exist.")
 
@@ -485,7 +474,8 @@ def main() -> None:
     target_roo_root = home / ".roo"
     target_roo_cmds = home / ".roo" / "commands"
     if target_roo_root.exists():
-        extract_prompts_to_md(shared_files, target_roo_cmds, ".roo")
+        extract_prompts_to_md(shared_files, target_roo_cmds, ".roo",
+                             include_description=True)
     else:
         print("Skipping .roo: directory does not exist.")
 
@@ -493,7 +483,8 @@ def main() -> None:
     target_codex_root = home / ".codex"
     target_codex_prompts = home / ".codex" / "prompts"
     if target_codex_root.exists():
-        extract_prompts_to_md_with_description(shared_files, target_codex_prompts, ".codex")
+        extract_prompts_to_md(shared_files, target_codex_prompts, ".codex",
+                             include_description=True)
     else:
         print("Skipping .codex: directory does not exist.")
 

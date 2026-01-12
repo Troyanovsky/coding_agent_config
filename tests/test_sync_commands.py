@@ -46,12 +46,12 @@ class TestEscapeYamlString(unittest.TestCase):
         self.assertEqual(result, r"It''s a \path")
 
 
-class TestFormatYamlDescription(unittest.TestCase):
-    """Test the _format_yaml_description function."""
+class TestFormatYamlDict(unittest.TestCase):
+    """Test the _format_yaml_dict function."""
 
     def test_simple_description(self):
         """Simple descriptions should format correctly."""
-        result = sync_commands._format_yaml_description("A simple description")
+        result = sync_commands._format_yaml_dict({"description": "A simple description"})
         # With PyYAML: "description: A simple description" (no quotes)
         # Without PyYAML: "description: 'A simple description'"
         self.assertIn("description:", result)
@@ -59,51 +59,52 @@ class TestFormatYamlDescription(unittest.TestCase):
 
     def test_special_yaml_characters(self):
         """Special YAML characters should be properly escaped."""
-        description = "Use colons: and [brackets]"
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": "Use colons: and [brackets]"})
         # Should be valid YAML - no unescaped special chars
         self.assertIn("description:", result)
 
     def test_colon_character(self):
         """Colons should not break YAML formatting."""
-        description = "Step 1: Do something"
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": "Step 1: Do something"})
         self.assertIn("description:", result)
 
     def test_brackets(self):
         """Brackets should be properly handled."""
-        description = "See [documentation](link)"
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": "See [documentation](link)"})
         self.assertIn("description:", result)
 
     def test_braces(self):
         """Braces should be properly handled."""
-        description = "Use {key: value}"
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": "Use {key: value}"})
         self.assertIn("description:", result)
 
     def test_unicode_characters(self):
         """Unicode characters should be preserved."""
-        description = "Unicode: café, 日本語, emoji 🎉"
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": "Unicode: café, 日本語, emoji 🎉"})
         self.assertIn("description:", result)
         # Unicode should be present, not escaped
         self.assertIn("café", result)
 
     def test_quotes_in_description(self):
         """Quotes should be properly escaped."""
-        description = 'He said "hello"'
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": 'He said "hello"'})
         self.assertIn("description:", result)
 
     def test_empty_string(self):
         """Empty strings should be handled."""
-        result = sync_commands._format_yaml_description("")
+        result = sync_commands._format_yaml_dict({"description": ""})
         self.assertIn("description:", result)
 
+    def test_extra_boolean_field(self):
+        """Extra fields like booleans should be properly formatted."""
+        result = sync_commands._format_yaml_dict({"description": "Test", "disable-model-invocation": True})
+        self.assertIn("description:", result)
+        self.assertIn("disable-model-invocation:", result)
+        self.assertIn("True", result)
 
-class TestFormatYamlDescriptionWithoutPyYaml(unittest.TestCase):
-    """Test _format_yaml_description behavior without PyYAML."""
+
+class TestFormatYamlDictWithoutPyYaml(unittest.TestCase):
+    """Test _format_yaml_dict behavior without PyYAML."""
 
     def setUp(self):
         self.original_has_yaml = sync_commands.HAS_YAML
@@ -114,8 +115,7 @@ class TestFormatYamlDescriptionWithoutPyYaml(unittest.TestCase):
 
     def test_multiline_description_replaces_newlines(self):
         """Multi-line descriptions are flattened when PyYAML is unavailable."""
-        description = "Line one\nLine two"
-        result = sync_commands._format_yaml_description(description)
+        result = sync_commands._format_yaml_dict({"description": "Line one\nLine two"})
         self.assertIn("description:", result)
         self.assertNotIn("\n", result)
         self.assertIn("Line one Line two", result)

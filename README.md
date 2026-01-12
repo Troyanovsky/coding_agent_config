@@ -43,8 +43,8 @@ The `sync_commands.py` script automates the distribution of configs to supported
 
 1.  **Commands Distribution**:
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
-    - **Claude**: Extracts the `prompt` string from `.toml` files and saves them as Markdown files in `~/.claude/commands/`. Commands prefixed with `claude_` (e.g., `claude_agent_implement.toml`) are Claude-only and have the prefix stripped in the output (e.g., `agent_implement.md`).
-    - **Roo, Codex**: Extracts prompts to `.md` files for shared commands only (non-`claude_` prefixed).
+    - **Claude**: Extracts the `prompt` and `description` from `.toml` files and saves them as Markdown files with YAML front matter in `~/.claude/commands/`. Includes `disable-model-invocation: true` field. Commands prefixed with `claude_` (e.g., `claude_agent_implement.toml`) are Claude-only and have the prefix stripped in the output (e.g., `agent_implement.md`).
+    - **Roo, Codex**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
     - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools. All other commands are shared across all tools.
     - **File Regeneration**: All `.md` command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
     - **Cleanup**: Automatically removes stale symlinks and `.md` files when source `.toml` files are deleted.
@@ -119,7 +119,7 @@ python3 -m pytest tests/
 python3 -m pytest tests/ -v
 
 # Run specific test class
-python3 -m pytest tests/test_sync_commands.py::TestFormatYamlDescription -v
+python3 -m pytest tests/test_sync_commands.py::TestFormatYamlDict -v
 
 # Run using unittest directly
 python3 -m unittest tests.test_sync_commands

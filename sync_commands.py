@@ -194,8 +194,7 @@ def _process_source_file(source_file: pathlib.Path, target_cmds_dir: pathlib.Pat
 
         _write_prompt_file(target_file, prompt_content, description, extra_fields)
 
-        subdir = "prompts" if include_description else "commands"
-        print(f"  Extracted prompt from {source_file.name} -> {tool_name}/{subdir}/{md_filename}")
+        print(f"  Extracted prompt from {source_file.name} -> {tool_name}/{target_cmds_dir.name}/{md_filename}")
         return md_filename
     except (OSError, ValueError) as e:
         print(f"  Error processing {source_file.name} for {tool_name}: {e}")

@@ -9,6 +9,7 @@ This repository serves as a centralized source of truth for coding agent configu
     - Code quality principles (DRY, KISS, SOLID).
     - Formatting, naming, and security guidelines.
     - Documentation standards.
+- **`Useful_Skills.md`**: Documentation for useful external skills and tools that can enhance AI coding assistant capabilities.
 - **`commands/`**: A directory containing custom commands defined in TOML format:
     - `architect.toml`: ARCHITECT a complete system architecture and implementation plan
     - `claude_agent_implement.toml`: (Claude-only) Implement tasks with baseline reproduction and validation

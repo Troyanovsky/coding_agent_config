@@ -134,8 +134,11 @@ def _format_yaml_dict(data: dict) -> str:
                     print("  -> Newlines will be replaced with spaces. Install with: pip install pyyaml")
                     value = value.replace('\n', ' ')
                 lines.append(f"description: '{_escape_yaml_string(value)}'")
+            elif isinstance(value, bool):
+                # Handle boolean values with lowercase YAML format
+                lines.append(f"{key}: {str(value).lower()}")
             else:
-                # Handle boolean and other types (no quotes for non-strings)
+                # Handle other types (no quotes for non-strings)
                 lines.append(f"{key}: {value}")
         return '\n'.join(lines)
 

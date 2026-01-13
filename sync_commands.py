@@ -1,7 +1,6 @@
 """Sync command prompt files and related symlinks for multiple AI tool directories."""
 from __future__ import annotations
 
-import json
 import os
 import pathlib
 import sys
@@ -29,6 +28,45 @@ except ImportError:
 
 # Module-level constants
 CLAUDE_PREFIX = "claude_"
+HOME_DIR = pathlib.Path.home()
+ALLOWED_FRONTMATTER_KEYS = {
+    "name",
+    "description",
+    "tools",
+    "model",
+    "mode",
+    "disable-model-invocation",
+}
+
+
+def _compute_expected_md_stems(toml_files: list[pathlib.Path], strip_prefix: Optional[str]) -> tuple[set[str], set[str]]:
+    """
+    Computes expected markdown file stems and obsolete "old format" stems.
+
+    Returns:
+        (expected_stems, old_format_stems)
+
+    expected_stems:
+        The set of stems that correspond to current .toml sources after
+        applying optional prefix stripping.
+
+    old_format_stems:
+        When strip_prefix is set and changes the output stem, the original
+        source stems represent an obsolete naming format and should be removed
+        during cleanup.
+    """
+    expected_stems: set[str] = set()
+    old_format_stems: set[str] = set()
+
+    for source_file in toml_files:
+        source_stem = source_file.stem
+        expected_stem = _get_output_stem(source_stem, strip_prefix) or source_stem
+        expected_stems.add(expected_stem)
+
+        if strip_prefix and expected_stem != source_stem:
+            old_format_stems.add(source_stem)
+
+    return expected_stems, old_format_stems
 
 def safe_symlink(target: pathlib.Path, link_name: pathlib.Path) -> None:
     """
@@ -38,7 +76,7 @@ def safe_symlink(target: pathlib.Path, link_name: pathlib.Path) -> None:
         os.symlink(target, link_name)
         # Show full relative path from home directory (e.g., ".claude/agents/file.md")
         try:
-            link_rel_path = link_name.relative_to(pathlib.Path.home())
+            link_rel_path = link_name.relative_to(HOME_DIR)
             print(f"  Linked {target.name} -> {link_rel_path}")
         except ValueError:
             # Path not relative to home (e.g., in tests)
@@ -179,7 +217,6 @@ def _parse_yaml_frontmatter(content: str) -> tuple[Optional[dict], str]:
             frontmatter = yaml.safe_load(yaml_content)
             if isinstance(frontmatter, dict):
                 # Filter to only expected keys for security
-                ALLOWED_FRONTMATTER_KEYS = {'name', 'description', 'tools', 'model', 'mode', 'disable-model-invocation'}
                 frontmatter = {k: v for k, v in frontmatter.items() if k in ALLOWED_FRONTMATTER_KEYS}
                 return frontmatter, body_content
             return None, body_content
@@ -249,7 +286,13 @@ def _process_source_file(source_file: pathlib.Path, target_cmds_dir: pathlib.Pat
         return None
 
 
-def _should_remove_md_file(item: pathlib.Path, toml_files: list[pathlib.Path], created_md_files: set[str], strip_prefix: Optional[str]) -> bool:
+def _should_remove_md_file(
+    item: pathlib.Path,
+    toml_files: list[pathlib.Path],
+    created_md_files: set[str],
+    strip_prefix: Optional[str],
+    expected_md_stems: Optional[tuple[set[str], set[str]]] = None,
+) -> bool:
     """
     Determines if a .md file should be removed during cleanup.
 
@@ -262,16 +305,16 @@ def _should_remove_md_file(item: pathlib.Path, toml_files: list[pathlib.Path], c
     """
     item_stem = item.stem
 
-    for source_file in toml_files:
-        source_stem = source_file.stem
-        expected_stem = _get_output_stem(source_stem, strip_prefix) or source_stem
+    if expected_md_stems is None:
+        expected_stems, old_format_stems = _compute_expected_md_stems(toml_files, strip_prefix)
+    else:
+        expected_stems, old_format_stems = expected_md_stems
 
-        if item_stem == expected_stem:
-            # File matches expected output - keep it if we just created it
-            return item.name not in created_md_files
-        elif strip_prefix and item_stem == source_stem:
-            # File matches source name but should have been stripped (old format)
-            return True
+    if item_stem in old_format_stems:
+        return True
+
+    if item_stem in expected_stems:
+        return item.name not in created_md_files
 
     return True
 
@@ -281,8 +324,9 @@ def _cleanup_stale_md_files(target_cmds_dir: pathlib.Path, toml_files: list[path
     Removes .md files that don't have corresponding source .toml files,
     including files with old naming format.
     """
+    expected_md_stems = _compute_expected_md_stems(toml_files, strip_prefix)
     for item in target_cmds_dir.glob("*.md"):
-        if _should_remove_md_file(item, toml_files, created_md_files, strip_prefix):
+        if _should_remove_md_file(item, toml_files, created_md_files, strip_prefix, expected_md_stems=expected_md_stems):
             safe_remove(item, context="stale .md file during cleanup")
 
 
@@ -321,7 +365,7 @@ def _sync_symlinks_to_dir(source_files: list[pathlib.Path], cmd_dir: pathlib.Pat
                 if os.path.samefile(current_target, expected_target):
                     # Correct symlink already exists - skip it
                     try:
-                        link_rel_path = link_name.relative_to(pathlib.Path.home())
+                        link_rel_path = link_name.relative_to(HOME_DIR)
                         print(f"  Skipping {source_file.name}: symlink already exists in {link_rel_path.parent}")
                     except ValueError:
                         # Path not relative to home (e.g., in tests), use parent dir name
@@ -330,7 +374,7 @@ def _sync_symlinks_to_dir(source_files: list[pathlib.Path], cmd_dir: pathlib.Pat
                 else:
                     # Incorrect symlink - remove and recreate
                     try:
-                        link_rel_path = link_name.relative_to(pathlib.Path.home())
+                        link_rel_path = link_name.relative_to(HOME_DIR)
                         print(f"  Replacing incorrect symlink {source_file.name} in {link_rel_path.parent}")
                     except ValueError:
                         print(f"  Replacing incorrect symlink {source_file.name} in {link_name.parent.name}")
@@ -338,7 +382,7 @@ def _sync_symlinks_to_dir(source_files: list[pathlib.Path], cmd_dir: pathlib.Pat
             except OSError:
                 # Broken symlink - remove and recreate
                 try:
-                    link_rel_path = link_name.relative_to(pathlib.Path.home())
+                    link_rel_path = link_name.relative_to(HOME_DIR)
                     print(f"  Replacing broken symlink {source_file.name} in {link_rel_path.parent}")
                 except ValueError:
                     print(f"  Replacing broken symlink {source_file.name} in {link_name.parent.name}")

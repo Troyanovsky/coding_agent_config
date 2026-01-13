@@ -38,5 +38,5 @@ Operating rules:
 - Prefer correctness over cleverness
 - Keep diffs small and focused
 - Stop once the task is fully satisfied
-- If requirements are unclear, surface the ambiguity instead of guessing
+- If requirements are unclear, surface the ambiguity and confirm with the user instead of guessing
 """

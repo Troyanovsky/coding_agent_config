@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 # Add parent directory to path to import sync_commands
@@ -684,6 +685,746 @@ class TestOpenCodeAgentSync(unittest.TestCase):
         # Should have mode added but no description
         self.assertIn("mode: subagent", content)
         self.assertIn("Content", content)
+
+
+class TestComputeExpectedMdStems(unittest.TestCase):
+    """Test the _compute_expected_md_stems helper function."""
+
+    def test_no_prefix_stripping(self):
+        """When strip_prefix is None, stems remain unchanged."""
+        toml_files = [Path("command.toml"), Path("test.toml")]
+        expected, old_format = sync_commands._compute_expected_md_stems(toml_files, None)
+        self.assertEqual(expected, {"command", "test"})
+        self.assertEqual(old_format, set())
+
+    def test_with_prefix_stripping(self):
+        """Prefix should be stripped from all matching files."""
+        toml_files = [Path("claude_command.toml"), Path("claude_test.toml")]
+        expected, old_format = sync_commands._compute_expected_md_stems(toml_files, "claude_")
+        self.assertEqual(expected, {"command", "test"})
+        self.assertEqual(old_format, {"claude_command", "claude_test"})
+
+    def test_mixed_prefix_and_non_prefix(self):
+        """Mix of files with and without prefix should be handled correctly."""
+        toml_files = [Path("claude_command.toml"), Path("shared.toml")]
+        expected, old_format = sync_commands._compute_expected_md_stems(toml_files, "claude_")
+        self.assertEqual(expected, {"command", "shared"})
+        self.assertEqual(old_format, {"claude_command"})
+
+    def test_prefix_stripping_to_empty(self):
+        """Files that become empty after stripping should be handled."""
+        toml_files = [Path("claude_.toml"), Path("command.toml")]
+        expected, old_format = sync_commands._compute_expected_md_stems(toml_files, "claude_")
+        # When stem would be empty after stripping, the original stem is used
+        self.assertEqual(expected, {"claude_", "command"})
+        # The original stem is not tracked as old format since it's still used
+        self.assertEqual(old_format, set())
+
+    def test_empty_file_list(self):
+        """Empty file list should return empty sets."""
+        toml_files = []
+        expected, old_format = sync_commands._compute_expected_md_stems(toml_files, None)
+        self.assertEqual(expected, set())
+        self.assertEqual(old_format, set())
+
+    def test_multiple_files_same_stem_after_strip(self):
+        """Duplicate stems after stripping should be handled."""
+        toml_files = [Path("claude_test.toml"), Path("test.toml")]
+        expected, old_format = sync_commands._compute_expected_md_stems(toml_files, "claude_")
+        # Both files result in "test" stem
+        self.assertEqual(expected, {"test"})
+        self.assertEqual(old_format, {"claude_test"})
+
+
+class TestSafeSymlink(unittest.TestCase):
+    """Test the safe_symlink function."""
+
+    def setUp(self):
+        """Create a temporary directory for test files."""
+        self.test_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_creates_symlink_successfully(self):
+        """Symlink should be created successfully."""
+        target = Path(self.test_dir) / "target.txt"
+        link = Path(self.test_dir) / "link.txt"
+        target.write_text("content")
+
+        sync_commands.safe_symlink(target, link)
+
+        self.assertTrue(link.is_symlink())
+        self.assertTrue(os.path.samefile(link.resolve(), target))
+
+    def test_handles_windows_permission_error(self):
+        """Test Windows WinError 1314 (insufficient privileges)."""
+        target = Path(self.test_dir) / "target.txt"
+        link = Path(self.test_dir) / "link.txt"
+        target.write_text("content")
+
+        with unittest.mock.patch('os.symlink') as mock_symlink:
+            # Create OSError with winerror attribute
+            error = OSError("Privilege not held")
+            error.winerror = 1314
+            mock_symlink.side_effect = error
+
+            with unittest.mock.patch('platform.system', return_value='Windows'):
+                # Should not raise, should print error message
+                sync_commands.safe_symlink(target, link)
+
+            mock_symlink.assert_called_once()
+
+    def test_handles_generic_os_error(self):
+        """Generic OSError should be handled gracefully."""
+        target = Path(self.test_dir) / "target.txt"
+        link = Path(self.test_dir) / "link.txt"
+        target.write_text("content")
+
+        with unittest.mock.patch('os.symlink') as mock_symlink:
+            mock_symlink.side_effect = OSError("Generic error")
+
+            # Should not raise
+            sync_commands.safe_symlink(target, link)
+
+            mock_symlink.assert_called_once()
+
+
+class TestSafeRemove(unittest.TestCase):
+    """Test the safe_remove function."""
+
+    def setUp(self):
+        """Create a temporary directory for test files."""
+        self.test_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_removes_regular_file(self):
+        """Regular file should be removed successfully."""
+        test_file = Path(self.test_dir) / "test.txt"
+        test_file.write_text("content")
+
+        result = sync_commands.safe_remove(test_file)
+
+        self.assertTrue(result)
+        self.assertFalse(test_file.exists())
+
+    def test_removes_symlink(self):
+        """Symlink should be removed successfully."""
+        target = Path(self.test_dir) / "target.txt"
+        link = Path(self.test_dir) / "link.txt"
+        target.write_text("content")
+        os.symlink(target, link)
+
+        result = sync_commands.safe_remove(link)
+
+        self.assertTrue(result)
+        self.assertFalse(link.exists())
+        # Target should still exist
+        self.assertTrue(target.exists())
+
+    def test_handles_nonexistent_file(self):
+        """Nonexistent file should be handled gracefully."""
+        test_file = Path(self.test_dir) / "nonexistent.txt"
+
+        result = sync_commands.safe_remove(test_file)
+
+        self.assertFalse(result)
+
+    def test_handles_permission_error(self):
+        """Permission errors should be handled gracefully."""
+        test_file = Path(self.test_dir) / "test.txt"
+        test_file.write_text("content")
+
+        with unittest.mock.patch.object(Path, 'unlink') as mock_unlink:
+            mock_unlink.side_effect = OSError("Permission denied")
+
+            result = sync_commands.safe_remove(test_file)
+
+            self.assertFalse(result)
+
+    def test_returns_true_on_success(self):
+        """Successful removal should return True."""
+        test_file = Path(self.test_dir) / "test.txt"
+        test_file.write_text("content")
+
+        result = sync_commands.safe_remove(test_file)
+
+        self.assertTrue(result)
+
+    def test_returns_false_on_failure(self):
+        """Failed removal should return False."""
+        test_file = Path(self.test_dir) / "nonexistent.txt"
+
+        result = sync_commands.safe_remove(test_file)
+
+        self.assertFalse(result)
+
+    def test_includes_context_in_error_message(self):
+        """Context string should be included in error message."""
+        test_file = Path(self.test_dir) / "test.txt"
+        test_file.write_text("content")
+
+        with unittest.mock.patch.object(Path, 'unlink') as mock_unlink:
+            mock_unlink.side_effect = OSError("Permission denied")
+
+            with unittest.mock.patch('builtins.print') as mock_print:
+                sync_commands.safe_remove(test_file, context="test context")
+
+                # Check that context was included in print output
+                calls = [str(call) for call in mock_print.call_args_list]
+                self.assertTrue(any("test context" in call for call in calls))
+
+
+class TestParseYamlFrontmatterWithoutPyYaml(unittest.TestCase):
+    """Test _parse_yaml_frontmatter behavior without PyYAML."""
+
+    def setUp(self):
+        """Save and disable HAS_YAML."""
+        self.original_has_yaml = sync_commands.HAS_YAML
+        sync_commands.HAS_YAML = False
+
+    def tearDown(self):
+        """Restore original HAS_YAML value."""
+        sync_commands.HAS_YAML = self.original_has_yaml
+
+    def test_returns_none_when_no_yaml(self):
+        """Without PyYAML, frontmatter parsing should return None."""
+        content = "---\nname: test\n---\n\nBody"
+        frontmatter, body = sync_commands._parse_yaml_frontmatter(content)
+        self.assertIsNone(frontmatter)
+        # Body should be the original content
+        self.assertEqual(body, content)
+
+    def test_returns_original_content(self):
+        """Content should remain unchanged when HAS_YAML=False."""
+        content = "---\ndescription: Test\n---\n\nBody content"
+        frontmatter, body = sync_commands._parse_yaml_frontmatter(content)
+        self.assertIsNone(frontmatter)
+        self.assertEqual(body, content)
+
+    def test_prints_warning_message(self):
+        """Warning message should be printed when PyYAML is not installed."""
+        content = "---\nname: test\n---\n\nBody"
+
+        with unittest.mock.patch('builtins.print') as mock_print:
+            sync_commands._parse_yaml_frontmatter(content)
+
+            # Check that warning was printed
+            calls = [str(call) for call in mock_print.call_args_list]
+            self.assertTrue(any("PyYAML not installed" in call for call in calls))
+
+
+class TestExtractPromptsToMd(unittest.TestCase):
+    """Test the extract_prompts_to_md integration function."""
+
+    def setUp(self):
+        """Create temporary directories for testing."""
+        self.test_dir = tempfile.mkdtemp()
+        self.source_dir = Path(self.test_dir) / "source"
+        self.target_dir = Path(self.test_dir) / "target"
+        self.source_dir.mkdir()
+        self.target_dir.mkdir()
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_extracts_single_file(self):
+        """Single TOML file should be extracted to .md file."""
+        source_file = self.source_dir / "command.toml"
+        source_file.write_text('prompt = "Hello"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [source_file], self.target_dir, "test_tool"
+        )
+
+        target_file = self.target_dir / "command.md"
+        self.assertTrue(target_file.exists())
+        self.assertEqual(target_file.read_text(encoding="utf-8"), "Hello")
+
+    def test_extracts_multiple_files(self):
+        """Multiple TOML files should be extracted."""
+        file1 = self.source_dir / "command1.toml"
+        file2 = self.source_dir / "command2.toml"
+        file1.write_text('prompt = "Hello"\n')
+        file2.write_text('prompt = "World"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [file1, file2], self.target_dir, "test_tool"
+        )
+
+        self.assertTrue((self.target_dir / "command1.md").exists())
+        self.assertTrue((self.target_dir / "command2.md").exists())
+
+    def test_with_prefix_stripping(self):
+        """Prefix should be stripped from output filenames."""
+        source_file = self.source_dir / "claude_command.toml"
+        source_file.write_text('prompt = "Test"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [source_file], self.target_dir, "test_tool",
+            strip_prefix="claude_"
+        )
+
+        target_file = self.target_dir / "command.md"
+        self.assertTrue(target_file.exists())
+        self.assertFalse((self.target_dir / "claude_command.md").exists())
+
+    def test_with_description_included(self):
+        """YAML frontmatter with description should be included."""
+        source_file = self.source_dir / "command.toml"
+        source_file.write_text('prompt = "Test"\ndescription = "A command"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [source_file], self.target_dir, "test_tool",
+            include_description=True
+        )
+
+        target_file = self.target_dir / "command.md"
+        content = target_file.read_text(encoding="utf-8")
+        self.assertIn("---", content)
+        self.assertIn("description:", content)
+        self.assertIn("A command", content)
+
+    def test_with_extra_fields(self):
+        """Extra YAML fields should be included."""
+        source_file = self.source_dir / "command.toml"
+        source_file.write_text('prompt = "Test"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [source_file], self.target_dir, "test_tool",
+            extra_fields={"disable-model-invocation": True}
+        )
+
+        target_file = self.target_dir / "command.md"
+        content = target_file.read_text(encoding="utf-8")
+        self.assertIn("disable-model-invocation:", content)
+        self.assertIn("true", content)
+
+    def test_cleanup_stale_files(self):
+        """Orphaned .md files should be removed."""
+        # Create stale file
+        stale_file = self.target_dir / "stale.md"
+        stale_file.write_text("old content")
+
+        # Create new source
+        source_file = self.source_dir / "command.toml"
+        source_file.write_text('prompt = "Test"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [source_file], self.target_dir, "test_tool"
+        )
+
+        # Stale file should be removed
+        self.assertFalse(stale_file.exists())
+        # New file should exist
+        self.assertTrue((self.target_dir / "command.md").exists())
+
+    def test_skips_files_without_prompt(self):
+        """Files missing 'prompt' key should be skipped."""
+        source_file = self.source_dir / "no_prompt.toml"
+        source_file.write_text('description = "No prompt here"\n')
+
+        sync_commands.extract_prompts_to_md(
+            [source_file], self.target_dir, "test_tool"
+        )
+
+        self.assertFalse((self.target_dir / "no_prompt.md").exists())
+
+
+class TestSyncAgentsFolder(unittest.TestCase):
+    """Test the _sync_agents_folder function."""
+
+    def setUp(self):
+        """Create temporary directories and save original agents directory."""
+        self.test_dir = tempfile.mkdtemp()
+        self.target_dir = Path(self.test_dir) / "agents"
+        self.target_dir.mkdir()
+
+        # Save and backup original agents directory
+        self.original_agents = Path("./agents").resolve()
+        self.backup_agents = None
+        if self.original_agents.exists():
+            self.backup_agents = Path(self.test_dir) / "backup_agents"
+            import shutil
+            shutil.copytree(self.original_agents, self.backup_agents)
+
+        # Create temporary agents directory for testing
+        self.test_agents_dir = Path("./agents").resolve()
+        if self.test_agents_dir.exists():
+            import shutil
+            shutil.rmtree(self.test_agents_dir)
+        self.test_agents_dir.mkdir()
+
+    def tearDown(self):
+        """Clean up temporary files and restore original agents."""
+        import shutil
+        # Remove test agents directory
+        if self.test_agents_dir.exists():
+            shutil.rmtree(self.test_agents_dir)
+
+        # Restore original agents if it was backed up
+        if self.backup_agents and self.backup_agents.exists():
+            shutil.copytree(self.backup_agents, self.original_agents)
+
+        # Clean up test directory
+        shutil.rmtree(self.test_dir)
+
+    def test_creates_symlinks_for_agent_files(self):
+        """Symlinks should be created for agent .md files."""
+        # Create test agent file
+        agent_file = self.test_agents_dir / "test_agent.md"
+        agent_file.write_text("Agent content")
+
+        sync_commands._sync_agents_folder(self.target_dir)
+
+        link_path = self.target_dir / "test_agent.md"
+        self.assertTrue(link_path.is_symlink())
+        self.assertTrue(os.path.samefile(link_path.resolve(), agent_file))
+
+    def test_skips_when_agents_dir_missing(self):
+        """Function should skip when ./agents directory doesn't exist."""
+        # Remove agents directory
+        import shutil
+        shutil.rmtree(self.test_agents_dir)
+
+        # Should not raise error
+        sync_commands._sync_agents_folder(self.target_dir)
+
+        # No symlinks should be created
+        self.assertEqual(list(self.target_dir.glob("*.md")), [])
+
+    def test_skips_when_no_md_files(self):
+        """Function should handle empty agents directory."""
+        # Agents dir exists but no .md files
+        sync_commands._sync_agents_folder(self.target_dir)
+
+        # Should complete without error
+        self.assertEqual(list(self.target_dir.glob("*.md")), [])
+
+    def test_handles_existing_correct_symlinks(self):
+        """Existing correct symlinks should be skipped."""
+        agent_file = self.test_agents_dir / "test_agent.md"
+        agent_file.write_text("Agent content")
+
+        # Create existing correct symlink
+        link_path = self.target_dir / "test_agent.md"
+        os.symlink(agent_file, link_path)
+
+        # Should skip existing symlink
+        sync_commands._sync_agents_folder(self.target_dir)
+
+        # Symlink should still exist and point to correct target
+        self.assertTrue(link_path.is_symlink())
+        self.assertTrue(os.path.samefile(link_path.resolve(), agent_file))
+
+    def test_replaces_incorrect_symlinks(self):
+        """Incorrect symlinks should be replaced."""
+        agent_file = self.test_agents_dir / "test_agent.md"
+        agent_file.write_text("Agent content")
+
+        # Create incorrect symlink
+        wrong_target = self.test_agents_dir / "wrong.md"
+        wrong_target.write_text("Wrong")
+        link_path = self.target_dir / "test_agent.md"
+        os.symlink(wrong_target, link_path)
+
+        sync_commands._sync_agents_folder(self.target_dir)
+
+        # Symlink should now point to correct target
+        self.assertTrue(os.path.samefile(link_path.resolve(), agent_file))
+
+
+class TestSyncAgentsMdLinks(unittest.TestCase):
+    """Test the _sync_agents_md_links and _create_agents_md_link functions."""
+
+    def setUp(self):
+        """Create temporary directories."""
+        self.test_dir = tempfile.mkdtemp()
+        self.home_dir = Path(self.test_dir) / "home"
+        self.home_dir.mkdir()
+        self.agents_md = Path(self.test_dir) / "AGENTS.md"
+        self.agents_md.write_text("# Agents")
+
+        # Save original HOME_DIR
+        self.original_home = sync_commands.HOME_DIR
+
+    def tearDown(self):
+        """Clean up temporary files and restore HOME_DIR."""
+        import shutil
+        sync_commands.HOME_DIR = self.original_home
+        shutil.rmtree(self.test_dir)
+
+    def test_create_agents_md_link_creates_symlink(self):
+        """Symlink should be created when directory exists."""
+        target_dir = self.home_dir / ".claude"
+        target_dir.mkdir()
+
+        result = sync_commands._create_agents_md_link(
+            self.agents_md, target_dir, "CLAUDE.md"
+        )
+
+        self.assertTrue(result)
+        link_path = target_dir / "CLAUDE.md"
+        self.assertTrue(link_path.is_symlink())
+
+    def test_create_agents_md_link_skips_existing(self):
+        """Existing symlink should be skipped."""
+        target_dir = self.home_dir / ".claude"
+        target_dir.mkdir()
+        link_path = target_dir / "CLAUDE.md"
+        os.symlink(self.agents_md, link_path)
+
+        result = sync_commands._create_agents_md_link(
+            self.agents_md, target_dir, "CLAUDE.md"
+        )
+
+        self.assertTrue(result)
+        # Link should still exist
+        self.assertTrue(link_path.exists())
+
+    def test_create_agents_md_link_skips_missing_dir(self):
+        """Function should return False when directory doesn't exist."""
+        target_dir = self.home_dir / ".nonexistent"
+
+        result = sync_commands._create_agents_md_link(
+            self.agents_md, target_dir, "CLAUDE.md"
+        )
+
+        self.assertFalse(result)
+
+    def test_sync_agents_md_links_creates_all_targets(self):
+        """Links should be created to all configured targets."""
+        # Create target directories
+        (self.home_dir / ".claude").mkdir()
+        (self.home_dir / ".gemini").mkdir()
+        (self.home_dir / ".qwen").mkdir()
+        (self.home_dir / ".codex").mkdir()
+
+        with unittest.mock.patch('sync_commands.HOME_DIR', self.home_dir):
+            with unittest.mock.patch('pathlib.Path.resolve', return_value=self.agents_md):
+                sync_commands._sync_agents_md_links(self.home_dir)
+
+        # Check that links were created
+        self.assertTrue((self.home_dir / ".claude" / "CLAUDE.md").exists() or
+                        (self.home_dir / ".claude" / "CLAUDE.md").is_symlink())
+        self.assertTrue((self.home_dir / ".gemini" / "AGENTS.md").exists() or
+                        (self.home_dir / ".gemini" / "AGENTS.md").is_symlink())
+
+    def test_sync_agents_md_links_skips_when_source_missing(self):
+        """Links should be removed when source AGENTS.md is missing."""
+        # Create target directories with existing links
+        target_dir = self.home_dir / ".claude"
+        target_dir.mkdir()
+        link_path = target_dir / "CLAUDE.md"
+        link_path.write_text("old link")
+
+        # Remove AGENTS.md source
+        self.agents_md.unlink()
+
+        with unittest.mock.patch('sync_commands.HOME_DIR', self.home_dir):
+            with unittest.mock.patch('pathlib.Path.resolve', return_value=self.agents_md):
+                sync_commands._sync_agents_md_links(self.home_dir)
+
+        # Link should be removed
+        self.assertFalse(link_path.exists())
+
+
+class TestRemoveAgentsMdLink(unittest.TestCase):
+    """Test the _remove_agents_md_link function."""
+
+    def setUp(self):
+        """Create temporary directory."""
+        self.test_dir = tempfile.mkdtemp()
+        self.target_dir = Path(self.test_dir) / "target"
+
+    def tearDown(self):
+        """Clean up temporary files."""
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_removes_existing_symlink(self):
+        """Existing symlink should be removed."""
+        self.target_dir.mkdir()
+        source = Path(self.test_dir) / "source.md"
+        source.write_text("content")
+        link_path = self.target_dir / "CLAUDE.md"
+        os.symlink(source, link_path)
+
+        sync_commands._remove_agents_md_link(self.target_dir, "CLAUDE.md")
+
+        self.assertFalse(link_path.exists())
+
+    def test_skips_when_directory_missing(self):
+        """Function should skip when directory doesn't exist."""
+        # Should not raise error
+        sync_commands._remove_agents_md_link(self.target_dir, "CLAUDE.md")
+
+    def test_skips_when_link_missing(self):
+        """Function should skip when link doesn't exist."""
+        self.target_dir.mkdir()
+
+        # Should not raise error
+        sync_commands._remove_agents_md_link(self.target_dir, "CLAUDE.md")
+
+
+class TestMain(unittest.TestCase):
+    """Test the main entry point function."""
+
+    def setUp(self):
+        """Create temporary directories and save originals."""
+        self.test_dir = tempfile.mkdtemp()
+        self.commands_dir = Path(self.test_dir) / "commands"
+        self.commands_dir.mkdir()
+        self.home_dir = Path(self.test_dir) / "home"
+        self.home_dir.mkdir()
+
+        # Save original values
+        self.original_home = sync_commands.HOME_DIR
+        sync_commands.HOME_DIR = self.home_dir
+
+        # Save original agents directory
+        self.original_agents = Path("./agents").resolve()
+        self.backup_agents = None
+        if self.original_agents.exists():
+            self.backup_agents = Path(self.test_dir) / "backup_agents"
+            import shutil
+            shutil.copytree(self.original_agents, self.backup_agents)
+
+        # Create temporary agents directory for testing
+        self.test_agents_dir = Path("./agents").resolve()
+        if self.test_agents_dir.exists():
+            import shutil
+            shutil.rmtree(self.test_agents_dir)
+        self.test_agents_dir.mkdir()
+
+    def tearDown(self):
+        """Clean up and restore originals."""
+        import shutil
+        sync_commands.HOME_DIR = self.original_home
+
+        # Remove test agents directory
+        if self.test_agents_dir.exists():
+            shutil.rmtree(self.test_agents_dir)
+
+        # Restore original agents if it was backed up
+        if self.backup_agents and self.backup_agents.exists():
+            shutil.copytree(self.backup_agents, self.original_agents)
+
+        shutil.rmtree(self.test_dir)
+
+    def test_exits_when_commands_dir_missing(self):
+        """Function should return early when commands directory doesn't exist."""
+        # Remove commands directory temporarily
+        import shutil
+        shutil.rmtree(self.commands_dir)
+
+        # Run from the isolated temp project root and patch home to avoid touching real ~/
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+        try:
+            with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
+                # Should return without error
+                sync_commands.main()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_exits_when_no_toml_files(self):
+        """Function should return early when no .toml files found."""
+        # Empty commands directory; run from isolated temp project root and patch home
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+        try:
+            with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
+                sync_commands.main()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_filters_claude_only_files(self):
+        """Claude-only files should be filtered correctly."""
+        # Create test files
+        shared_file = self.commands_dir / "shared.toml"
+        shared_file.write_text('prompt = "shared"\n')
+        claude_file = self.commands_dir / "claude_test.toml"
+        claude_file.write_text('prompt = "claude"\n')
+
+        # Create .claude directory in home_dir (which is mocked HOME_DIR)
+        claude_root = self.home_dir / ".claude"
+        claude_root.mkdir(parents=True)
+
+        # Change to test directory so main() finds the commands dir
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+
+        try:
+            # Mock Path.home() to return our home_dir
+            with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
+                sync_commands.main()
+
+            # Check that files were processed for .claude
+            # The claude_root is in test_dir/home/.claude
+            self.assertTrue((claude_root / "commands").exists())
+            # claude_test.toml -> test.md (prefix stripped)
+            self.assertTrue((claude_root / "commands" / "test.md").exists())
+            # shared.toml -> shared.md (no prefix to strip)
+            self.assertTrue((claude_root / "commands" / "shared.md").exists())
+        finally:
+            os.chdir(original_cwd)
+
+    def test_processes_shared_files(self):
+        """Shared files should be processed for all tools."""
+        shared_file = self.commands_dir / "shared.toml"
+        shared_file.write_text('prompt = "shared"\n')
+
+        # Create .claude directory
+        claude_root = self.home_dir / ".claude"
+        claude_root.mkdir(parents=True)
+
+        # Change to test directory
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+
+        try:
+            # Mock Path.home() to return our home_dir
+            with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
+                sync_commands.main()
+
+            # Files should be processed
+            self.assertTrue((claude_root / "commands").exists())
+            self.assertTrue((claude_root / "commands" / "shared.md").exists())
+        finally:
+            os.chdir(original_cwd)
+
+    def test_skips_nonexistent_tool_dirs(self):
+        """Non-existent tool directories should be skipped."""
+        shared_file = self.commands_dir / "shared.toml"
+        shared_file.write_text('prompt = "shared"\n')
+
+        # Don't create any tool directories - they don't exist
+
+        # Change to test directory
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+
+        try:
+            # Mock Path.home() to return our home_dir
+            with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
+                # Should not raise error
+                sync_commands.main()
+        finally:
+            os.chdir(original_cwd)
 
 
 if __name__ == "__main__":

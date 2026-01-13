@@ -100,7 +100,7 @@ class TestFormatYamlDict(unittest.TestCase):
         result = sync_commands._format_yaml_dict({"description": "Test", "disable-model-invocation": True})
         self.assertIn("description:", result)
         self.assertIn("disable-model-invocation:", result)
-        self.assertIn("True", result)
+        self.assertIn("true", result)  # YAML uses lowercase boolean literals
 
 
 class TestFormatYamlDictWithoutPyYaml(unittest.TestCase):
@@ -509,6 +509,181 @@ class TestProcessSourceFile(unittest.TestCase):
 
         self.assertIsNone(result)
         self.assertFalse((self.target_dir / "missing.md").exists())
+
+
+class TestParseYamlFrontmatter(unittest.TestCase):
+    """Test the _parse_yaml_frontmatter helper function."""
+
+    def test_no_frontmatter(self):
+        """Content without frontmatter delimiters should return None and original content."""
+        content = "# Title\n\nSome content"
+        frontmatter, body = sync_commands._parse_yaml_frontmatter(content)
+        self.assertIsNone(frontmatter)
+        self.assertEqual(body, content)
+
+    def test_valid_frontmatter(self):
+        """Valid frontmatter should be parsed correctly."""
+        content = "---\nname: test\ndescription: A test\n---\n\nBody content"
+        frontmatter, body = sync_commands._parse_yaml_frontmatter(content)
+        self.assertIsNotNone(frontmatter)
+        self.assertEqual(frontmatter.get("name"), "test")
+        self.assertEqual(frontmatter.get("description"), "A test")
+        self.assertEqual(body, "\nBody content")
+
+    def test_missing_end_delimiter(self):
+        """Content with start delimiter but no end delimiter should return None."""
+        content = "---\nname: test\n\nBody content"
+        frontmatter, body = sync_commands._parse_yaml_frontmatter(content)
+        self.assertIsNone(frontmatter)
+        self.assertEqual(body, content)
+
+    def test_empty_frontmatter(self):
+        """Empty frontmatter dict should return None."""
+        content = "---\n---\n\nBody content"
+        frontmatter, body = sync_commands._parse_yaml_frontmatter(content)
+        # Empty dict may be returned as None depending on yaml.safe_load
+        self.assertIn(frontmatter, [None, {}])
+        self.assertEqual(body, "\nBody content")
+
+
+class TestOpenCodeAgentSync(unittest.TestCase):
+    """Test OpenCode agent synchronization."""
+
+    def setUp(self):
+        """Create temporary directories and save original agents directory."""
+        self.test_dir = tempfile.mkdtemp()
+        self.target_dir = Path(self.test_dir) / "opencode_agent"
+        self.target_dir.mkdir(parents=True)
+
+        # Save original agents directory if it exists
+        self.original_agents = Path("./agents").resolve()
+        self.backup_agents = None
+        if self.original_agents.exists():
+            # Create a backup
+            self.backup_agents = Path(self.test_dir) / "backup_agents"
+            import shutil
+            shutil.copytree(self.original_agents, self.backup_agents)
+
+        # Create temporary agents directory for testing
+        self.test_agents_dir = Path("./agents").resolve()
+        if self.test_agents_dir.exists():
+            import shutil
+            shutil.rmtree(self.test_agents_dir)
+        self.test_agents_dir.mkdir()
+
+    def tearDown(self):
+        """Clean up temporary files and restore original agents."""
+        import shutil
+        # Remove test agents directory
+        if self.test_agents_dir.exists():
+            shutil.rmtree(self.test_agents_dir)
+
+        # Restore original agents if it was backed up
+        if self.backup_agents and self.backup_agents.exists():
+            shutil.copytree(self.backup_agents, self.original_agents)
+
+        # Clean up test directory
+        shutil.rmtree(self.test_dir)
+
+    def test_agent_with_description(self):
+        """Agent with description should have description and mode in frontmatter."""
+        agent_file = self.test_agents_dir / "test_agent.md"
+        agent_file.write_text(
+            "---\n"
+            "name: test-agent\n"
+            "description: A test agent\n"
+            "tools: Read, Write\n"
+            "---\n\n"
+            "You are a test agent."
+        )
+
+        sync_commands._sync_opencode_agents_folder(self.target_dir)
+
+        target_file = self.target_dir / "test_agent.md"
+        self.assertTrue(target_file.exists())
+
+        content = target_file.read_text(encoding="utf-8")
+        self.assertIn("---", content)
+        self.assertIn("description: A test agent", content)
+        self.assertIn("mode: subagent", content)
+        # Original name and tools should NOT be in output
+        self.assertNotIn("name: test-agent", content)
+        self.assertNotIn("tools: Read, Write", content)
+        # Body content should be preserved
+        self.assertIn("You are a test agent.", content)
+
+    def test_agent_without_frontmatter(self):
+        """Agent without frontmatter should have only mode in frontmatter."""
+        agent_file = self.test_agents_dir / "no_frontmatter.md"
+        agent_file.write_text("You are an agent without frontmatter.")
+
+        sync_commands._sync_opencode_agents_folder(self.target_dir)
+
+        target_file = self.target_dir / "no_frontmatter.md"
+        self.assertTrue(target_file.exists())
+
+        content = target_file.read_text(encoding="utf-8")
+        self.assertIn("mode: subagent", content)
+        self.assertIn("You are an agent without frontmatter.", content)
+
+    def test_agent_cleanup_removes_stale(self):
+        """Stale agent files should be removed."""
+        # Create initial agent
+        agent_file = self.test_agents_dir / "active.md"
+        agent_file.write_text(
+            "---\n"
+            "description: Active agent\n"
+            "---\n\n"
+            "Active content"
+        )
+
+        # Create a stale file in target that won't be recreated
+        stale_file = self.target_dir / "stale.md"
+        stale_file.write_text("Stale content")
+
+        sync_commands._sync_opencode_agents_folder(self.target_dir)
+
+        # Active file should exist
+        self.assertTrue((self.target_dir / "active.md").exists())
+        # Stale file should be removed
+        self.assertFalse(stale_file.exists())
+
+    def test_agent_with_empty_description(self):
+        """Agent with empty description should still include mode field."""
+        agent_file = self.test_agents_dir / "empty_desc.md"
+        agent_file.write_text(
+            "---\n"
+            "description: \"\"\n"
+            "---\n\n"
+            "Content here"
+        )
+
+        sync_commands._sync_opencode_agents_folder(self.target_dir)
+
+        target_file = self.target_dir / "empty_desc.md"
+        self.assertTrue(target_file.exists())
+        content = target_file.read_text(encoding="utf-8")
+        self.assertIn("mode: subagent", content)
+        self.assertIn("description:", content)  # Empty description still present
+
+    def test_agent_with_malformed_yaml(self):
+        """Agent with malformed YAML should fall back to no frontmatter."""
+        agent_file = self.test_agents_dir / "malformed.md"
+        agent_file.write_text(
+            "---\n"
+            "description: [unclosed bracket\n"
+            "---\n\n"
+            "Content"
+        )
+
+        sync_commands._sync_opencode_agents_folder(self.target_dir)
+
+        target_file = self.target_dir / "malformed.md"
+        self.assertTrue(target_file.exists())
+        content = target_file.read_text(encoding="utf-8")
+        # Should have mode added but no description
+        self.assertIn("mode: subagent", content)
+        self.assertIn("Content", content)
 
 
 if __name__ == "__main__":

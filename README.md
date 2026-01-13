@@ -1,6 +1,6 @@
 # Coding Agent Configuration
 
-This repository serves as a centralized source of truth for coding agent configurations, workflows, and custom commands. It is designed to maintain consistency across different AI coding assistants (Gemini, Qwen, Claude, iFlow, etc.) by synchronizing a master `AGENTS.md` and a set of custom commands.
+This repository serves as a centralized source of truth for coding agent configurations, workflows, and custom commands. It is designed to maintain consistency across different AI coding assistants (Claude, Gemini, Qwen, Roo, Codex, iFlow, OpenCode, etc.) by synchronizing a master `AGENTS.md` and a set of custom commands.
 
 ## Structure
 
@@ -46,12 +46,14 @@ The `sync_commands.py` script automates the distribution of configs to supported
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
     - **Claude**: Extracts the `prompt` and `description` from `.toml` files and saves them as Markdown files with YAML front matter in `~/.claude/commands/`. Includes `disable-model-invocation: true` field. Commands prefixed with `claude_` (e.g., `claude_agent_implement.toml`) are Claude-only and have the prefix stripped in the output (e.g., `agent_implement.md`).
     - **Roo, Codex**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
-    - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools. All other commands are shared across all tools.
+    - **OpenCode**: Extracts prompts and descriptions to `.md` files with YAML front matter in `~/.config/opencode/command/`. All commands (including `claude_` prefixed) are synced with the prefix stripped.
+    - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools (except OpenCode, which receives all commands with prefix stripped). All other commands are shared across all tools.
     - **File Regeneration**: All `.md` command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
     - **Cleanup**: Automatically removes stale symlinks and `.md` files when source `.toml` files are deleted.
 
 2.  **Agents Folder Distribution**:
-    - Symlinks `.md` files from `./agents/` to `~/.claude/agents/` for Claude Code's agent system.
+    - **Claude**: Symlinks `.md` files from `./agents/` to `~/.claude/agents/` for Claude Code's agent system.
+    - **OpenCode**: Extracts `description` field from agent frontmatter and adds `mode: subagent` field, writing to `~/.config/opencode/agent/`.
     - Supports custom agent definitions that can be referenced in command prompts.
 
 3.  **`AGENTS.md` Distribution**:
@@ -62,6 +64,7 @@ The `sync_commands.py` script automates the distribution of configs to supported
         - `~/.codex/AGENTS.md`
         - `~/.iflow/IFLOW.md`
         - `~/.roo/rules/AGENTS.md`
+        - `~/.config/opencode/AGENTS.md`
     - **Cleanup**: Removes symlinks if the source `AGENTS.md` file is deleted.
 
 ### Prerequisites

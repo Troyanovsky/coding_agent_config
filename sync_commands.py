@@ -143,6 +143,54 @@ def _format_yaml_dict(data: dict) -> str:
         return '\n'.join(lines)
 
 
+def _parse_yaml_frontmatter(content: str) -> tuple[Optional[dict], str]:
+    """
+    Parses YAML frontmatter from markdown content.
+
+    Args:
+        content: The full markdown content including frontmatter
+
+    Returns:
+        A tuple of (frontmatter_dict, body_content). If no frontmatter
+        is found, returns (None, content). If YAML parsing fails, returns
+        (None, content) and prints a warning.
+    """
+    lines = content.split('\n')
+
+    # Check for frontmatter delimiters
+    if not lines or lines[0] != '---':
+        return None, content
+
+    # Find the end delimiter
+    try:
+        end_idx = lines[1:].index('---') + 1
+    except ValueError:
+        # No end delimiter found, treat as no frontmatter
+        return None, content
+
+    # Extract YAML section
+    yaml_lines = lines[1:end_idx]
+    yaml_content = '\n'.join(yaml_lines)
+    body_content = '\n'.join(lines[end_idx + 1:])
+
+    # Parse YAML
+    if HAS_YAML:
+        try:
+            frontmatter = yaml.safe_load(yaml_content)
+            if isinstance(frontmatter, dict):
+                # Filter to only expected keys for security
+                ALLOWED_FRONTMATTER_KEYS = {'name', 'description', 'tools', 'model', 'mode', 'disable-model-invocation'}
+                frontmatter = {k: v for k, v in frontmatter.items() if k in ALLOWED_FRONTMATTER_KEYS}
+                return frontmatter, body_content
+            return None, body_content
+        except yaml.YAMLError as e:
+            print(f"  Warning: Failed to parse YAML frontmatter: {e}")
+            return None, content
+    else:
+        print("  Warning: PyYAML not installed, skipping frontmatter parsing.")
+        return None, content
+
+
 def _write_prompt_file(target_file: pathlib.Path, prompt_content: str, description: Optional[str] = None, extra_fields: Optional[dict] = None) -> None:
     """
     Writes prompt content to a target file, optionally with YAML front matter.
@@ -335,6 +383,54 @@ def _sync_agents_folder(target_claude_agents: pathlib.Path) -> None:
     _sync_symlinks_to_dir(agents_md_files, target_claude_agents, agents_source_dir.resolve())
 
 
+def _sync_opencode_agents_folder(target_opencode_agents: pathlib.Path) -> None:
+    """
+    Syncs agent .md files from ./agents to .config/opencode/agent.
+    Keeps only the description field from frontmatter and adds mode: subagent.
+    """
+    print(f"\nProcessing OpenCode agents...")
+
+    agents_source_dir = pathlib.Path("./agents").resolve()
+    if not agents_source_dir.exists() or not agents_source_dir.is_dir():
+        print("  Skipping agents folder: source directory './agents' does not exist.")
+        return
+
+    agents_md_files: list[pathlib.Path] = list(agents_source_dir.glob("*.md"))
+    if not agents_md_files:
+        print("  No .md files found in ./agents/")
+        return
+
+    print(f"  Found {len(agents_md_files)} agent .md files.")
+    target_opencode_agents.mkdir(parents=True, exist_ok=True)
+
+    created_files: set[str] = set()
+
+    for source_file in agents_md_files:
+        try:
+            content = source_file.read_text(encoding="utf-8")
+            frontmatter, body = _parse_yaml_frontmatter(content)
+
+            # Extract description from frontmatter
+            description = None
+            if frontmatter and isinstance(frontmatter, dict):
+                description = frontmatter.get("description")
+
+            # Write file with description and mode: subagent in frontmatter
+            target_file = target_opencode_agents / source_file.name
+            _write_prompt_file(target_file, body, description, extra_fields={"mode": "subagent"})
+
+            print(f"  Extracted agent {source_file.name} -> opencode/agent/{source_file.name}")
+            created_files.add(source_file.name)
+
+        except (OSError, UnicodeDecodeError) as e:
+            print(f"  Error processing agent {source_file.name}: {e}")
+
+    # Cleanup stale agent files
+    for item in target_opencode_agents.glob("*.md"):
+        if item.name not in created_files:
+            safe_remove(item, context="stale OpenCode agent file during cleanup")
+
+
 def _create_agents_md_link(agents_md_source: pathlib.Path, root_dir: pathlib.Path, target_file_name: str) -> bool:
     """
     Creates a symlink for AGENTS.md to the specified target location.
@@ -375,6 +471,7 @@ def _sync_agents_md_links(home: pathlib.Path) -> None:
         (home / ".qwen", "QWEN.md"),
         (home / ".codex", "AGENTS.md"),
         (home / ".iflow", "IFLOW.md"),
+        (home / ".config" / "opencode", "AGENTS.md"),
     ]
 
     if agents_md_source.exists():
@@ -490,13 +587,31 @@ def main() -> None:
     else:
         print("Skipping .codex: directory does not exist.")
 
-    # 5. Handle Agents Folder Symlinks to Claude Code
+    # 5. Handle OpenCode
+    target_opencode_config = home / ".config" / "opencode"
+    target_opencode_cmds = target_opencode_config / "command"
+    target_opencode_agents = target_opencode_config / "agent"
+
+    if target_opencode_config.exists():
+        print(f"\nProcessing OpenCode...")
+
+        # Commands: all files with claude_ prefix stripped
+        extract_prompts_to_md(toml_files, target_opencode_cmds, "opencode",
+                             strip_prefix=CLAUDE_PREFIX,
+                             include_description=True)
+
+        # Agents: sync with description-only frontmatter and mode: subagent
+        _sync_opencode_agents_folder(target_opencode_agents)
+    else:
+        print("Skipping OpenCode: directory does not exist.")
+
+    # 6. Handle Agents Folder Symlinks to Claude Code
     if target_claude_root.exists():
         _sync_agents_folder(target_claude_agents)
     else:
         print("  Skipping agents folder: .claude directory does not exist.")
 
-    # 6. Handle AGENTS.md Symlinks
+    # 7. Handle AGENTS.md Symlinks
     _sync_agents_md_links(home)
 
 if __name__ == "__main__":

@@ -12,26 +12,5 @@
       "Progress can be queried and displayed"
     ],
     "passes": false
-  },
-  {
-    "id": "TEST-260113-001",
-    "type": "task",
-    "epic": "Testing",
-    "title": "Add missing unit tests for sync_commands.py",
-    "description": "Add comprehensive unit tests for untested core functions and error paths in sync_commands.py. Current test coverage misses critical code paths used in production.",
-    "priority": "high",
-    "acceptance_criteria": [
-      "Add test for _compute_expected_md_stems() with prefix stripping scenarios",
-      "Add test for extract_prompts_to_md() integration function",
-      "Add test for _sync_agents_folder() symlink creation",
-      "Add test for _sync_agents_md_links() and _create_agents_md_link()",
-      "Add test for _remove_agents_md_link()",
-      "Add test for safe_symlink() Windows permission error handling",
-      "Add test for safe_remove() with various file types",
-      "Add test for _parse_yaml_frontmatter() when HAS_YAML=False",
-      "Add test for main() entry point with mocked file system",
-      "All existing tests pass after changes"
-    ],
-    "passes": true
   }
 ]

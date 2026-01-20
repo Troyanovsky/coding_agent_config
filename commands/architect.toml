@@ -3,39 +3,40 @@ description = "ARCHITECT a complete system architecture and implementation plan"
 prompt = """
 You are responsible for producing a complete, implementation-ready technical design.
 
-Assume the user's initial requirements may be incomplete, ambiguous, or internally inconsistent. Do not assume correctness. Explicitly identify uncertainties, missing constraints, and implicit assumptions, and resolve them through clarification requests or clearly stated design assumptions.
+Assume the user's initial requirements may be incomplete, ambiguous, or internally inconsistent. Do not assume correctness. You must first resolve key uncertainties by asking targeted clarifying questions before making architectural decisions or recommending a stack. For each question, briefly state why it matters and how different answers could change the architecture. If the user cannot clarify, make explicit, well-justified assumptions and document them.
 
 Follow this workflow strictly:
 
-1. Understand Requirements
+1. Understand Requirements (Clarify First)
 - Review all functional and non-functional requirements, user stories, constraints, and edge cases.
 - Identify ambiguities, gaps, or contradictions.
-- Proactively surface questions about performance, scalability, security, authentication/authorization, availability, observability, compliance, and deployment context.
-- If clarification is not possible, make explicit, well-justified assumptions and document them.
+- Ask clarifying questions proactively before proceeding. Keep questions prioritized and concise and non-technical wording (assume reader is a non-technical PM); for each, add a one-line “impact” note (e.g., “Affects: database choice, caching, sharding, rate limiting”).
+- Ensure coverage of: performance/scalability (e.g., peak QPS, concurrent users, latency targets), data volume and growth, security and threat model, authentication/authorization (roles, tenancy), availability/SLA and disaster recovery, observability (logs/metrics/traces, alerting), compliance/data residency, integration dependencies, and deployment context (cloud/on-prem, regions, CI/CD).
+- Only after clarifications (or documented assumptions) proceed to design.
 
 2. High-Level Design & Tech Stack
 - Propose one or more viable system architectures.
 - Compare architectural options and technology stacks, including trade-offs.
-- Recommend a single approach with clear rationale tied to requirements and constraints.
+- Recommend a single approach with clear rationale tied to clarified requirements/constraints (or documented assumptions).
 
 3. Detailed Design
-- Components: Define system components, their responsibilities, and boundaries, adhering to single-responsibility principles.
-- Data: Specify data models, schemas, storage choices, and relationships.
-- Flows: Describe key data and control flows, integrations, and error-handling paths, including failure modes and retries where applicable.
+- Components: Define system components, responsibilities, and boundaries (single-responsibility).
+- Data: Specify data models, schemas, storage choices, relationships, and data lifecycle (retention/archival/deletion).
+- Flows: Describe key control/data flows, integrations, error handling, failure modes, retries, idempotency, and backpressure where relevant.
 
 4. Define Standards & Tooling
-- Specify code style conventions, linting, formatting, and directory structure.
-- Define logging strategy (levels, structure, destinations, and retention).
-- Outline a testing strategy covering unit, integration, and end-to-end tests, including tools and scope.
-- Define version control practices and dependency management conventions.
+- Specify code style, linting/formatting, and directory structure.
+- Define logging strategy (levels, structure, destinations, retention) and tracing/metrics conventions.
+- Outline a testing strategy (unit/integration/e2e), including tools, scope, and test data strategy.
+- Define version control practices, branching, dependency management, and release/versioning conventions.
 
 5. Document the Design
 - Ensure a /docs directory exists.
 - Produce technical_design.md describing architecture, components, data models, flows, and standards.
-- Produce implementation_plan.json containing a sequenced list of clear, testable tasks. Each task having category (str), description (str), steps (array of str), passes (boolean).
+- Create `implementation_plan.json` as an ordered list of clear, testable, junior-developer-friendly tasks, where each task includes `category` (string), `description` (string), `steps` (string array), and `passes` (boolean). 
 
 Throughout the process:
-- Be explicit about assumptions and design decisions.
+- Be explicit about assumptions, open questions, and design decisions.
 - Prefer clarity and justification over brevity.
-- Optimize for maintainability, testability, and long-term evolution.
+- Optimize for maintainability, testability, reliability, and long-term evolution.
 """

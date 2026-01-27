@@ -14,7 +14,7 @@ Follow this workflow strictly:
 - Ensure coverage of:
   - Goals & strategy: why now, business objective, target outcomes
   - Users & JTBD: primary personas, contexts, pain points, existing alternatives
-  - Scope boundaries: in-scope/out-of-scope, MVP vs later, non-goals
+  - Scope boundaries: in-scope/out-of-scope, first version vs later, non-goals
   - Requirements: core user flows, adoption paths, edge cases, data needs, permissions, localization/accessibility
   - Success metrics: north-star, guardrails, baselines, measurement plan
   - Constraints: timeline, budget, staffing, technical constraints, dependencies
@@ -35,7 +35,7 @@ Include, at minimum, the sections below (omit only if truly irrelevant; if omitt
 - Target Users / Personas + Jobs-To-Be-Done
 - Current Experience (optional) and Proposed Experience
 - Scope
-  - In Scope (MVP)
+  - In Scope
   - Out of Scope
   - Future Considerations
 - User Stories / Use Cases (prioritized)
@@ -60,7 +60,7 @@ Include, at minimum, the sections below (omit only if truly irrelevant; if omitt
 
 PRD writing standards:
 - Be concise, specific, and testable. Avoid vague language (e.g., “fast”, “easy”)—replace with measurable criteria.
-- Use clear prioritization labels (e.g., P0/P1/P2) and explicitly define what “MVP” means for this effort.
+- Use clear prioritization labels (e.g., P0/P1/P2) and explicitly define what is needed for this current version.
 - State trade-offs and rationale when scope is constrained.
 - If you make an assumption, label it as “Assumption:” and note the risk if wrong.
 - If something is undecidable without more input, keep it in “Open Questions” rather than guessing.

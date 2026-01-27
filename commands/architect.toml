@@ -33,7 +33,7 @@ Follow this workflow strictly:
 5. Document the Design
 - Ensure a /docs directory exists.
 - Produce technical_design.md describing architecture, components, data models, flows, and standards.
-- Create `implementation_plan.json` as an ordered list of clear, testable, junior-developer-friendly tasks, where each task includes `category` (string), `description` (string), `steps` (string array), and `passes` (boolean). 
+- Create `implementation_plan.json` as an ordered list of clearly scoped, testable, junior-developer-friendly tasks, where each task includes `category` (string), `description` (string), `steps` (string array), and `passes` (boolean). 
 
 Throughout the process:
 - Be explicit about assumptions, open questions, and design decisions.

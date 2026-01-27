@@ -13,10 +13,10 @@ Follow this workflow strictly:
 - Ask a prioritized set of clarifying questions (grouped by topic). For each question include a one-line “Impact” note describing how answers affect the PRD (e.g., “Impact: changes MVP scope, metrics, compliance requirements, eng effort”).
 - Ensure coverage of:
   - Goals & strategy: why now, business objective, target outcomes
-  - Users & JTBD: primary personas, contexts, pain points, alternatives
+  - Users & JTBD: primary personas, contexts, pain points, existing alternatives
   - Scope boundaries: in-scope/out-of-scope, MVP vs later, non-goals
-  - Requirements: core user flows, edge cases, data needs, permissions, localization/accessibility
-  - Success metrics (optional): north-star, guardrails, baselines, measurement plan
+  - Requirements: core user flows, adoption paths, edge cases, data needs, permissions, localization/accessibility
+  - Success metrics: north-star, guardrails, baselines, measurement plan
   - Constraints: timeline, budget, staffing, technical constraints, dependencies
   - Risks & compliance: privacy/security, legal/regulatory, brand, safety
   - Launch & rollout: beta, feature flags, migration, comms, training/support

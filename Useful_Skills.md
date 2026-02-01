@@ -1,5 +1,15 @@
 # Useful Skills
 
+## Table of Contents
+
+- [UI/UX Pro Max Skill](#uiux-pro-max-skill)
+- [Pretty Mermaid Skill](#pretty-mermaid-skill)
+- [Vercel React Best Practices Skill](#vercel-react-best-practices-skill)
+- [Frontend Design Skill](#frontend-design-skill)
+- [Browser Use Skill](#browser-use-skill)
+
+---
+
 ## UI/UX Pro Max Skill
 
 **Repository:** https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
@@ -25,4 +35,48 @@ uipro init --ai kiro        # Kiro
 uipro init --ai codex       # Codex (Skills)
 uipro init --ai gemini      # Gemini CLI
 uipro init --ai all         # All assistants
+```
+
+## Pretty Mermaid Skill
+
+**Repository:** https://github.com/imxv/pretty-mermaid-skills
+
+**Description:** Render stunning, professionally-styled Mermaid diagrams with one command. Supports SVG for web/docs and ASCII for terminals.
+
+### Installation
+
+```bash
+npx skills add https://github.com/imxv/pretty-mermaid-skills --skill pretty-mermaid -g
+```
+
+## Vercel React Best Practices Skill
+
+**Repository:** https://github.com/vercel-labs/agent-skills
+
+### Installation
+
+```bash
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-best-practices -g
+```
+
+## Frontend Design Skill
+
+**Repository:** https://github.com/anthropics/skills
+
+### Installation
+
+```bash
+npx skills add https://github.com/anthropics/skills --skill frontend-design -g
+```
+
+## Browser Use Skill
+
+**Repository:** https://github.com/browser-use/browser-use
+
+**Description:** Provides fast, persistent browser automation. Maintains browser sessions across commands, enabling complex multi-step workflows.
+
+### Installation
+
+```bash
+npx skills add https://github.com/browser-use/browser-use --skill browser-use -g
 ```

@@ -30,7 +30,7 @@ Follow this workflow strictly:
 
 3. Write /docs/PRD.md
 Include, at minimum, the sections below (omit only if truly irrelevant; if omitted, say why):
-- Title, Date, Status
+- Title
 - Background / Problem Statement
 - Goals (business + user) and Non-Goals
 - Target Users / Personas + Jobs-To-Be-Done

@@ -7,6 +7,7 @@
 - [Vercel React Best Practices Skill](#vercel-react-best-practices-skill)
 - [Frontend Design Skill](#frontend-design-skill)
 - [Browser Use Skill](#browser-use-skill)
+- [API Design Principles Skill](#api-design-principles-skill)
 
 ---
 
@@ -79,4 +80,16 @@ npx skills add https://github.com/anthropics/skills --skill frontend-design -g
 
 ```bash
 npx skills add https://github.com/browser-use/browser-use --skill browser-use -g
+```
+
+## API Design Principles Skill
+
+**Repository:** https://github.com/wshobson/agents
+
+**Description:** Master REST and GraphQL API design principles to build intuitive, scalable, and maintainable APIs that delight developers and stand the test of time.
+
+### Installation
+
+```bash
+npx skills add https://github.com/wshobson/agents --skill api-design-principles -g
 ```

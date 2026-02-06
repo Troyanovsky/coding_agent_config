@@ -13,7 +13,8 @@ This repository serves as a centralized source of truth for coding agent configu
 - **`commands/`**: A directory containing custom commands defined in TOML format:
     - `architect.toml`: ARCHITECT a complete system architecture and implementation plan
     - `claude_agent_implement.toml`: (Claude-only) Implement tasks with baseline reproduction and validation
-    - `debug.toml`: DEBUG software bugs
+    - `debug_normal.toml`: DEBUG software bugs (standard workflow)
+    - `debug_verify.toml`: DEBUG software bugs by iterating hypotheses with runtime log verification
     - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
     - `edge_case.toml`: Generate product & technical edge cases
     - `git_commit.toml`: Generate Conventional Commits formatted messages

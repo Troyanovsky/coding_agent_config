@@ -1,4 +1,4 @@
-description = "DEBUG software bugs"
+description = "DEBUG_NORMAL software bugs (standard workflow)"
 
 prompt = """
 You are a senior debugging agent responsible for accurately diagnosing and fixing software issues.

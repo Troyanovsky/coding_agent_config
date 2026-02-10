@@ -15,7 +15,7 @@ Follow this workflow strictly:
   - Goals & strategy: why now, business objective, target outcomes
   - Users & JTBD: primary personas, contexts, pain points, existing alternatives
   - Scope boundaries: in-scope/out-of-scope, first version vs later, non-goals
-  - Requirements: core user flows, adoption paths, edge cases, data needs, permissions, localization/accessibility
+  - Requirements: core user flows, adoption paths, edge cases/recovery flows, data needs, permissions, localization/accessibility
   - Success metrics: north-star, guardrails, baselines, measurement plan
   - Constraints: timeline, budget, staffing, technical constraints, dependencies
   - Risks & compliance: privacy/security, legal/regulatory, brand, safety

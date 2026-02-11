@@ -8,6 +8,7 @@
 - [Frontend Design Skill](#frontend-design-skill)
 - [Browser Use Skill](#browser-use-skill)
 - [API Design Principles Skill](#api-design-principles-skill)
+- [Context7 Skill](#context7-skill)
 
 ---
 
@@ -92,4 +93,16 @@ npx skills add https://github.com/browser-use/browser-use --skill browser-use -g
 
 ```bash
 npx skills add https://github.com/wshobson/agents --skill api-design-principles -g
+```
+
+## Context7 Skill
+
+**Repository:** https://github.com/intellectronica/agent-skills
+
+**Description:** This skill enables retrieval of current documentation for software libraries and components by querying the Context7 API via curl. Use it instead of relying on potentially outdated training data.
+
+### Installation
+
+```bash
+npx skills add https://github.com/intellectronica/agent-skills --skill context7 -g
 ```

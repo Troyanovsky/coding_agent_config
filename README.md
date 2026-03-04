@@ -17,16 +17,19 @@ This repository serves as a centralized source of truth for coding agent configu
     - `debug_verify.toml`: DEBUG software bugs by iterating hypotheses with runtime log verification
     - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
     - `edge_case.toml`: Generate product & technical edge cases
+    - `explain_learn.toml`: Explain changes & technical decisions clearly and concisely for learning programming/architectural design
     - `git_commit.toml`: Generate Conventional Commits formatted messages
     - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
     - `issue_tracker.toml`: Maintain issue tracker JSON file in doc/docs folder
+    - `PRD.toml`: Generate PRD based on iterative questions
     - `review_changes.toml`: Review changed files for bugs and issues
     - `start_task.toml`: Prepare before starting to make sure git is clean
     - `update_doc.toml`: Update documentation based on code changes
     - Each `.toml` file defines a command with a `description` and a `prompt`.
 - **`agents/`**: Custom agent definitions for Claude Code:
-    - `code-reviewer.md`: Specialized agent for reviewing code quality
+    - `code-reviewer.md`: Expert code review specialist for quality, security, and maintainability
     - `docs-updater.md`: Agent for keeping documentation accurate
+    - `prd-reviewer.md`: Senior product manager PRD reviewer for clarity, scope, and delivery readiness
 - **`mcp.json`**: Configuration file for Model Context Protocol (MCP) servers, including:
     - `context7`: HTTP-based MCP server for retrieving up-to-date library documentation
     - `figma-desktop`: Figma desktop integration via local HTTP endpoint

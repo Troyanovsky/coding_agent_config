@@ -28,7 +28,7 @@
 
 - Use **descriptive, consistent names** that reflect domain intent.
 - Avoid magic numbers and hardcoded literals; use named constants or configuration.
-- **Never commit secrets, credentials, tokens, or API keys**.
+- **Never commit secrets, credentials, tokens, or API keys**. If you're using any, save them in .env files and never read them directly in messages.
 - Always consider security implications when modifying or introducing code.
 
 

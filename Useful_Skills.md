@@ -9,6 +9,7 @@
 - [Browser Use Skill](#browser-use-skill)
 - [API Design Principles Skill](#api-design-principles-skill)
 - [Context7 Skill](#context7-skill)
+- [Impeccable Skill](#impeccable-skill)
 
 ---
 
@@ -105,4 +106,16 @@ npx skills add https://github.com/wshobson/agents --skill api-design-principles 
 
 ```bash
 npx skills add https://github.com/intellectronica/agent-skills --skill context7 -g
+```
+
+## Impeccable Skill
+
+**Repository:** https://github.com/pbakaus/impeccable
+
+**Description:** 1 skill, 17 commands, and curated anti-patterns for impeccable frontend design.
+
+### Installation
+
+```bash
+npx skills add pbakaus/impeccable -g
 ```

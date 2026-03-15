@@ -2,11 +2,11 @@ description = "Generate product & technical edge cases"
 
 prompt = """
 <goal>
-Generate a structured list of edge cases for the feature below, starting from high-level auth/flow scenarios down to detailed component states and interactions.
+Generate a structured list of edge cases for the described feature, starting from high-level auth/flow scenarios down to detailed component states and interactions.
 </goal>
 
 <coverage>
-Think in layers. For each item below, list concrete edge cases (short bullet points), not general advice.
+Think in layers. For each item below, list concrete edge cases (short bullet points), not general advice. This coverage list is not definitive/comprehensive, you should add items when you think it's reasonable.
 
 1) High-level scenarios
 - Auth vs no auth: logged-in, logged-out, session expired, revoked access.

@@ -28,7 +28,7 @@
 
 - Use **descriptive, consistent names** that reflect domain intent.
 - Avoid magic numbers and hardcoded literals; use named constants or configuration.
-- **Never commit secrets, credentials, tokens, or API keys**.
+- **Never read/commit secrets, credentials, tokens, or API keys**. Credentials should be in `.env` files and you should not read that file.
 - Always consider security implications when modifying or introducing code.
 
 

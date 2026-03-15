@@ -9,6 +9,7 @@
 - [Browser Use Skill](#browser-use-skill)
 - [API Design Principles Skill](#api-design-principles-skill)
 - [Context7 Skill](#context7-skill)
+- [SwiftUI Pro Skill](#swiftui-pro-skill)
 - [Impeccable Skill](#impeccable-skill)
 
 ---
@@ -106,6 +107,18 @@ npx skills add https://github.com/wshobson/agents --skill api-design-principles 
 
 ```bash
 npx skills add https://github.com/intellectronica/agent-skills --skill context7 -g
+```
+
+## SwiftUI Pro Skill
+
+**Repository:** https://github.com/twostraws/swiftui-agent-skill
+
+**Description:** An agent skill that helps AI coding assistants write smarter, simpler, and more modern SwiftUI, including guidance on API usage, design, performance, and accessibility.
+
+### Installation
+
+```bash
+npx skills add https://github.com/twostraws/swiftui-agent-skill --skill swiftui-pro -g
 ```
 
 ## Impeccable Skill

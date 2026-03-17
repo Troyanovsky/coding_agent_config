@@ -30,14 +30,20 @@ This repository serves as a centralized source of truth for coding agent configu
     - `code-reviewer.md`: Expert code review specialist for quality, security, and maintainability
     - `docs-updater.md`: Agent for keeping documentation accurate
     - `prd-reviewer.md`: Senior product manager PRD reviewer for clarity, scope, and delivery readiness
+- **`Skills/`**: Custom skills for AI agents, automatically synced to agent skill directories:
+    - `simple-spec/`: Write well-defined product/feature specification documents
+    - `simple-design/`: Write well-defined technical design documents
+    - Each skill is a subdirectory containing a `SKILL.md` file and optional reference materials.
 - **`mcp.json`**: Configuration file for Model Context Protocol (MCP) servers, including:
     - `context7`: HTTP-based MCP server for retrieving up-to-date library documentation
     - `figma-desktop`: Figma desktop integration via local HTTP endpoint
     - `playwright`: Browser automation and testing capabilities (via npx)
     - `chrome-devtools`: Chrome DevTools integration for debugging (via npx)
+    - `tavily-remote`: Research and web search capabilities via Tavily API (via npx)
 - **`sync_commands.py`**: A utility script to deploy these configurations to the respective agent directories in your home folder.
 - **`play_notification.py`**: Cross-platform script to play audio notifications.
 - **`tests/`**: Unit tests for sync_commands.py functionality.
+- **`docs/`**: Documentation and project files, including `ISSUES.json` for issue tracking.
 - **`positive-notification.wav`**: Audio file for notification playback.
 
 ## Synchronization Script (`sync_commands.py`)
@@ -49,7 +55,8 @@ The `sync_commands.py` script automates the distribution of configs to supported
 1.  **Commands Distribution**:
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
     - **Claude**: Extracts the `prompt` and `description` from `.toml` files and saves them as Markdown files with YAML front matter in `~/.claude/commands/`. Includes `disable-model-invocation: true` field. Commands prefixed with `claude_` (e.g., `claude_agent_implement.toml`) are Claude-only and have the prefix stripped in the output (e.g., `agent_implement.md`).
-    - **Roo, Codex**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
+    - **Roo**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
+    - **Codex**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed). Files are written to `~/.codex/prompts/`.
     - **OpenCode**: Extracts prompts and descriptions to `.md` files with YAML front matter in `~/.config/opencode/command/`. All commands (including `claude_` prefixed) are synced with the prefix stripped.
     - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools (except OpenCode, which receives all commands with prefix stripped). All other commands are shared across all tools.
     - **File Regeneration**: All `.md` command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
@@ -60,7 +67,13 @@ The `sync_commands.py` script automates the distribution of configs to supported
     - **OpenCode**: Extracts `description` field from agent frontmatter and adds `mode: subagent` field, writing to `~/.config/opencode/agent/`.
     - Supports custom agent definitions that can be referenced in command prompts.
 
-3.  **`AGENTS.md` Distribution**:
+3.  **Skills Folder Distribution**:
+    - **Claude**: Symlinks skill subdirectories from `./Skills/` to `~/.claude/skills/`.
+    - **Global Skills**: Symlinks skill subdirectories from `./Skills/` to `~/.agents/skills/` for use across different AI assistants.
+    - Each skill is a subdirectory containing a `SKILL.md` file and optional reference materials.
+    - **Cleanup**: Automatically removes stale skill symlinks when source skill directories are deleted.
+
+4.  **`AGENTS.md` Distribution**:
     - Symlinks the root `AGENTS.md` to the appropriate location and filename for each agent:
         - `~/.claude/CLAUDE.md`
         - `~/.gemini/AGENTS.md`

@@ -502,6 +502,84 @@ def _remove_agents_md_link(root_dir: pathlib.Path, target_file_name: str) -> Non
             safe_remove(link_path, context="AGENTS.md symlink")
 
 
+def _sync_skills_folder(skills_source_dir: pathlib.Path, target_dirs: list[pathlib.Path]) -> None:
+    """
+    Syncs skill directories from a source folder to one or more target directories.
+
+    Each skill is a subdirectory containing a SKILL.md file. A symlink is created
+    in each target directory pointing back to the source skill directory.
+
+    Args:
+        skills_source_dir: Path to the source Skills/ directory (resolved).
+        target_dirs: List of target directories to sync skills into
+                     (e.g., ~/.agents/skills/, ~/.claude/skills/).
+    """
+    print(f"\nProcessing skills folder symlinks...")
+
+    if not skills_source_dir.exists() or not skills_source_dir.is_dir():
+        print(f"  Skipping skills folder: source directory '{skills_source_dir}' does not exist.")
+        return
+
+    # Find all subdirectories that contain a SKILL.md (i.e., valid skills)
+    skill_dirs: list[pathlib.Path] = [
+        d for d in sorted(skills_source_dir.iterdir())
+        if d.is_dir() and (d / "SKILL.md").exists()
+    ]
+
+    if not skill_dirs:
+        print("  No skills found (no subdirectories with SKILL.md).")
+        return
+
+    print(f"  Found {len(skill_dirs)} skill(s): {', '.join(d.name for d in skill_dirs)}")
+
+    for target_dir in target_dirs:
+        # Ensure the parent directory exists before creating the skills subdirectory
+        if not target_dir.parent.exists():
+            print(f"  Skipping {target_dir}: parent directory does not exist.")
+            continue
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            target_rel = target_dir.relative_to(HOME_DIR)
+            print(f"  Syncing to ~/{target_rel}...")
+        except ValueError:
+            print(f"  Syncing to {target_dir}...")
+
+        source_dir_resolved = skills_source_dir.resolve()
+        skill_names: set[str] = set()
+
+        for skill_dir in skill_dirs:
+            skill_names.add(skill_dir.name)
+            link_name = target_dir / skill_dir.name
+            expected_target = skill_dir.resolve()
+
+            if link_name.exists() or link_name.is_symlink():
+                try:
+                    current_target = link_name.resolve()
+                    if os.path.samefile(current_target, expected_target):
+                        print(f"    Skipping {skill_dir.name}: symlink already exists")
+                        continue
+                    else:
+                        print(f"    Replacing incorrect symlink {skill_dir.name}")
+                        safe_remove(link_name, context="incorrect skill symlink")
+                except OSError:
+                    print(f"    Replacing broken symlink {skill_dir.name}")
+                    safe_remove(link_name, context="broken skill symlink")
+
+            safe_symlink(expected_target, link_name)
+
+        # Cleanup stale skill symlinks
+        for item in target_dir.iterdir():
+            if item.is_symlink():
+                try:
+                    resolved = item.resolve()
+                    if resolved.parent == source_dir_resolved and item.name not in skill_names:
+                        safe_remove(item, context="stale skill symlink during cleanup")
+                except OSError:
+                    safe_remove(item, context="broken skill symlink during cleanup")
+
+
 def _sync_agents_md_links(home: pathlib.Path) -> None:
     """
     Syncs AGENTS.md symlinks to various tool directories.
@@ -655,7 +733,15 @@ def main() -> None:
     else:
         print("  Skipping agents folder: .claude directory does not exist.")
 
-    # 7. Handle AGENTS.md Symlinks
+    # 7. Handle Skills Folder Symlinks
+    skills_source_dir = pathlib.Path("./Skills").resolve()
+    skills_targets: list[pathlib.Path] = [
+        home / ".agents" / "skills",
+        home / ".claude" / "skills",
+    ]
+    _sync_skills_folder(skills_source_dir, skills_targets)
+
+    # 8. Handle AGENTS.md Symlinks
     _sync_agents_md_links(home)
 
 if __name__ == "__main__":

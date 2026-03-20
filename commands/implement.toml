@@ -29,6 +29,7 @@ Follow this workflow strictly:
 
 5. Wrap Up & Summarize
 - If accepted, update `passes` field of the issue in ISSUES.json (if exists).
+- Update docs/progress_log.md with a concise progress note for future engineers, including the task/issue, changes made, remaining work, and any blockers.
 - Provide a concise summary of the requirement, solution, changes made, and final outcome.
 
 Throughout the process:

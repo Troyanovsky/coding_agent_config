@@ -41,6 +41,9 @@ Include, at minimum, the sections below (omit only if truly irrelevant; if omitt
   - Out of Scope
   - Future Considerations
 - User Stories / Use Cases (prioritized)
+  - Stories must meet INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable)
+  - Each story should have acceptance criteria in BDD-style gherkin syntax (GIVEN...WHEN...THEN...)
+  - Acceptance criteria should cover happy path, error cases, edge cases, negative test cases, and avoid ambiguous qualitative terms
 - Detailed Requirements
   - Functional Requirements (numbered “FR-#”)
   - Non-Functional Requirements (numbered “NFR-#”: performance, reliability, accessibility, privacy, etc.)
@@ -51,7 +54,7 @@ Include, at minimum, the sections below (omit only if truly irrelevant; if omitt
 - Dependencies (teams, vendors, platforms) + Assumptions
 - Risks & Mitigations
 - Success Metrics & Measurement Plan (optional)
-  - North-star metric
+  - North-star, Leading indicators, Lagging indicators
   - Guardrails (e.g., latency, churn, error rate)
   - Experimentation (A/B, holdout) if applicable
 - Rollout / Launch Plan

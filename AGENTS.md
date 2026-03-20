@@ -64,7 +64,7 @@ Examples:
 - `fix(auth): correct token expiration handling`
 - `feat(profile): add user profile picture upload`
 
-- Use a commit body for complex changes to explain **intent, context, and impact**.
+- Use a commit body to explain **intent, context, and impact** with concise bullet points.
 
 
 ## Review Expectations

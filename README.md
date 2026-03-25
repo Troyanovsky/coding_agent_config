@@ -20,7 +20,7 @@ This repository serves as a centralized source of truth for coding agent configu
     - `explain_learn.toml`: Explain changes & technical decisions clearly and concisely for learning programming/architectural design
     - `git_commit.toml`: Generate Conventional Commits formatted messages
     - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
-    - `issue_tracker.toml`: Maintain issue tracker JSON file in doc/docs folder
+    - `issue_tracker.toml`: Maintain issue tracker JSON files in doc/docs folder (global `ISSUES.json` and feature-scoped `issues-<feature>.json`)
     - `PRD.toml`: Generate PRD based on iterative questions
     - `review_changes.toml`: Review changed files for bugs and issues
     - `start_task.toml`: Prepare before starting to make sure git is clean
@@ -43,7 +43,7 @@ This repository serves as a centralized source of truth for coding agent configu
 - **`sync_commands.py`**: A utility script to deploy these configurations to the respective agent directories in your home folder.
 - **`play_notification.py`**: Cross-platform script to play audio notifications.
 - **`tests/`**: Unit tests for sync_commands.py functionality.
-- **`docs/`**: Documentation and project files, including `ISSUES.json` for issue tracking.
+- **`docs/`**: Documentation and project files, including `ISSUES.json` for global issue tracking and `issues-<feature>.json` for feature-scoped issues.
 - **`positive-notification.wav`**: Audio file for notification playback.
 
 ## Synchronization Script (`sync_commands.py`)

@@ -1,8 +1,13 @@
-description = "Maintain issue tracker JSON file in doc/docs folder."
-prompt = """Maintain an issue tracker JSON (ISSUES.json) file in the project's documentation folder (doc or docs, whichever exists or is conventional). Each issue should have the following fields:
-- id: str, in the format of <TYPE>-<YYMMDD>-<NN>, e.g. BUG-260102-001
+description = "Maintain issue tracker JSON files in doc/docs folder."
+prompt = """Maintain issue tracker JSON files in the project's documentation folder (doc or docs, whichever exists or is conventional).
+
+There are two kinds of issue files:
+- `ISSUES.json` — global/cross-cutting issues that do not belong to a single feature (orphan bugs, infrastructure tasks, cross-cutting concerns).
+- `issues-<feature-name>.json` — feature-scoped issues tied to a specific feature. The `<feature-name>` token MUST match the token used in sibling artifacts (`spec-<feature-name>.md`, `design-<feature-name>.md`, `progress-log-<feature-name>.md`).
+
+Each issue should have the following fields:
+- id: str, in the format of <TYPE>-<FEATURE>-<NNN>, e.g. BUG-auth-001, STORY-payments-003. For global issues use the feature token "global", e.g. BUG-global-001.
 - type: str, one of "story" | "bug" | "task" | "change"
-- epic: str, high-level category (e.g. "Auth", "Payments")
 - title: str, short summary
 - description: str, detailed explanation but still concise
 - acceptance_criteria: array of str, describing success conditions
@@ -10,8 +15,12 @@ prompt = """Maintain an issue tracker JSON (ISSUES.json) file in the project's d
 
 Process:
 1. Check if 'doc' or 'docs' folder exists in the project. If neither exists, create a 'docs' folder.
-2. Read the existing issue tracker JSON file if it exists (ISSUES.json).
-3. Update the issue tracker JSON with new issues or update existing ones as per user request.
-4. Ensure all issues have the required fields and are properly formatted.
-5. Preserve existing issues unless they are resolved or need updates.
+2. Determine scope:
+   - If the user specifies a feature name, or one can be inferred from the current branch, task description, or existing `docs/spec-*.md` / `docs/design-*.md` artifacts, use the feature-scoped file `issues-<feature-name>.json`.
+   - Otherwise, use the global file `ISSUES.json`.
+3. Read the target issue tracker JSON file if it exists.
+4. Update the issue tracker JSON with new issues or update existing ones as per user request.
+5. Ensure all issues have the required fields and are properly formatted.
+6. Preserve existing issues unless they are resolved or need updates.
+7. When a feature is complete, mark all its issues as passes: true. The file stays in docs/ as an archive.
 """

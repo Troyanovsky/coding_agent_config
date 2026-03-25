@@ -28,8 +28,8 @@ Follow this workflow strictly:
 - Explain how verification confirms the requirement is met.
 
 5. Wrap Up & Summarize
-- If accepted, update `passes` field of the issue in ISSUES.json (if exists).
-- Update docs/progress_log.md with a concise progress note for future engineers, including the task/issue, changes made, remaining work, and any blockers.
+- If accepted, update `passes` field of the issue in `docs/issues-<feature name>.json` (preferred, use the same `<feature name>` as the progress log) or `docs/ISSUES.json` for global issues.
+- Update `docs/progress-log-<feature name>.md` with a concise progress note for future engineers, including the task/issue, changes made, remaining work, and any blockers.
 - Provide a concise summary of the requirement, solution, changes made, and final outcome.
 
 Throughout the process:

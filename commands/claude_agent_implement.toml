@@ -29,8 +29,8 @@ Process:
    - Fix identified bugs and issues until passed (i.e. call the code-reviewer agent again to review your fixes iteratively)
    - Do not introduce unsolicited refactors or improvements
 8. Documentation:
-   - Update docs/progress_log.md with a concise progress note for future engineers, including the task/issue, changes made, remaining work, and any blockers.
-   - Invoke the docs-updater agent to update relevant documentation (e.g. README.md, AGENTS.md, ISSUES.json, etc if relevant)
+   - Update `docs/progress-log-<feature name>.md` with a concise progress note for future engineers, including the task/issue, changes made, remaining work, and any blockers.
+   - Invoke the docs-updater agent to update relevant documentation (e.g. README.md, AGENTS.md, `docs/issues-<feature name>.json`, `docs/ISSUES.json`, etc if relevant)
 9. Finalize:
    - Run pre-commit hygiene (formatters/linters/pre-commit hooks) before committing if any
    - Commit changes using following established conventions

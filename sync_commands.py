@@ -29,6 +29,7 @@ except ImportError:
 # Module-level constants
 CLAUDE_PREFIX = "claude_"
 HOME_DIR = pathlib.Path.home()
+SKILLS_MANIFEST_FILENAME = ".sync_commands_manifest"
 ALLOWED_FRONTMATTER_KEYS = {
     "name",
     "description",
@@ -128,6 +129,42 @@ def _get_output_stem(source_stem: str, strip_prefix: Optional[str]) -> Optional[
         result = source_stem[len(strip_prefix):]
         return result if result else None
     return source_stem
+
+
+def _sanitize_skill_name(stem: str, strip_prefix: Optional[str]) -> Optional[str]:
+    """
+    Sanitizes a filename stem for use as a Claude Code skill name.
+
+    Applies prefix stripping, converts underscores to hyphens, and lowercases.
+    Skill names must be lowercase letters, numbers, and hyphens only (max 64 chars).
+
+    Args:
+        stem: The source filename stem (without extension)
+        strip_prefix: Optional prefix to strip from the stem
+
+    Returns:
+        Sanitized skill name, or None if the result would be empty.
+    """
+    result = _get_output_stem(stem, strip_prefix)
+    if not result:
+        return None
+
+    # Convert underscores to hyphens and lowercase
+    result = result.replace("_", "-").lower()
+
+    # Keep only valid characters (letters, numbers, hyphens)
+    sanitized = "".join(c for c in result if c.isalnum() or c == "-")
+
+    # Collapse multiple hyphens and strip leading/trailing hyphens
+    while "--" in sanitized:
+        sanitized = sanitized.replace("--", "-")
+    sanitized = sanitized.strip("-")
+
+    # Enforce max length
+    if len(sanitized) > 64:
+        sanitized = sanitized[:64].rstrip("-")
+
+    return sanitized if sanitized else None
 
 
 def _escape_yaml_string(value: str) -> str:
@@ -328,6 +365,130 @@ def _cleanup_stale_md_files(target_cmds_dir: pathlib.Path, toml_files: list[path
     for item in target_cmds_dir.glob("*.md"):
         if _should_remove_md_file(item, toml_files, created_md_files, strip_prefix, expected_md_stems=expected_md_stems):
             safe_remove(item, context="stale .md file during cleanup")
+
+
+def _read_skills_manifest(manifest_path: pathlib.Path) -> set[str]:
+    """
+    Reads the skills manifest file.
+
+    Returns:
+        Set of skill names managed by this script.
+    """
+    if not manifest_path.exists():
+        return set()
+
+    try:
+        import json
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list):
+                return set(data)
+    except (OSError, ValueError) as e:
+        print(f"  Warning: Could not read skills manifest: {e}")
+
+    return set()
+
+
+def _write_skills_manifest(manifest_path: pathlib.Path, skill_names: set[str]) -> None:
+    """
+    Writes the skills manifest file.
+    """
+    import json
+    try:
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(sorted(skill_names), f, indent=2)
+    except OSError as e:
+        print(f"  Warning: Could not write skills manifest: {e}")
+
+
+def _sync_commands_as_skills(
+    toml_files: list[pathlib.Path],
+    target_skills_dir: pathlib.Path,
+    strip_prefix: Optional[str] = None,
+) -> None:
+    """
+    Syncs .toml command files to Claude Code skills format.
+
+    Creates ~/.claude/skills/<skill-name>/SKILL.md for each command.
+    Uses a manifest file to track which skills are managed by this script,
+    ensuring we don't overwrite or remove skills from other sources.
+
+    Args:
+        toml_files: List of source .toml file paths
+        target_skills_dir: Target skills directory (e.g., ~/.claude/skills)
+        strip_prefix: Optional prefix to strip from skill names
+    """
+    print("Processing Claude Code skills...")
+    target_skills_dir.mkdir(parents=True, exist_ok=True)
+
+    manifest_path = target_skills_dir / SKILLS_MANIFEST_FILENAME
+    managed_skills = _read_skills_manifest(manifest_path)
+    current_skills: set[str] = set()
+
+    for source_file in toml_files:
+        skill_name = _sanitize_skill_name(source_file.stem, strip_prefix)
+
+        if not skill_name:
+            print(f"  Skipping {source_file.name}: invalid skill name after sanitization.")
+            continue
+
+        skill_dir = target_skills_dir / skill_name
+        skill_file = skill_dir / "SKILL.md"
+
+        # Check for conflict with non-managed skill
+        if (skill_dir.exists() or skill_dir.is_symlink()) and skill_name not in managed_skills:
+            print(f"  Warning: Skill '{skill_name}' already exists (not managed by this script). Skipping.")
+            continue
+
+        # Read and process the toml file
+        try:
+            with open(source_file, "rb") as f:
+                data = tomllib.load(f)
+
+            if "prompt" not in data:
+                print(f"  Skipping {source_file.name}: no 'prompt' key.")
+                continue
+
+            prompt_content = data["prompt"]
+            description = data.get("description", "")
+
+            # Create skill directory
+            skill_dir.mkdir(parents=True, exist_ok=True)
+
+            # Write SKILL.md with frontmatter (name, description, disable-model-invocation)
+            frontmatter = {
+                "name": skill_name,
+                "description": description,
+                "disable-model-invocation": True,
+            }
+            _write_prompt_file(skill_file, prompt_content, description=None, extra_fields=frontmatter)
+
+            print(f"  Created skill {source_file.name} -> skills/{skill_name}/SKILL.md")
+            current_skills.add(skill_name)
+
+        except (OSError, ValueError) as e:
+            print(f"  Error processing {source_file.name}: {e}")
+
+    # Cleanup stale skills (only those we previously managed)
+    stale_skills = managed_skills - current_skills
+    for skill_name in stale_skills:
+        skill_dir = target_skills_dir / skill_name
+        if skill_dir.exists() and not skill_dir.is_symlink():
+            try:
+                skill_file = skill_dir / "SKILL.md"
+                if skill_file.exists():
+                    skill_file.unlink()
+                # Only remove directory if empty
+                if not any(skill_dir.iterdir()):
+                    skill_dir.rmdir()
+                    print(f"  Removed stale skill: {skill_name}")
+                else:
+                    print(f"  Warning: Could not remove skill '{skill_name}': directory not empty")
+            except OSError as e:
+                print(f"  Error removing stale skill '{skill_name}': {e}")
+
+    # Update manifest
+    _write_skills_manifest(manifest_path, current_skills)
 
 
 def _cleanup_stale_symlinks(cmd_dir: pathlib.Path, source_files: list[pathlib.Path], source_dir_resolved: pathlib.Path) -> None:
@@ -676,22 +837,27 @@ def main() -> None:
     ]
 
     target_claude_root = home / ".claude"
-    target_claude_cmds = home / ".claude" / "commands"
     target_claude_agents = home / ".claude" / "agents"
+    target_claude_skills = home / ".claude" / "skills"
 
     # 1. Handle Symlinks (Gemini, Qwen, iflow) - only shared files
     _sync_symlink_targets(shared_files, source_dir, targets_symlink)
 
-    # 2. Handle Claude (Extraction) - all files, strip claude_ prefix
+    # 2. Handle Skills Folder Symlinks (must run before commands→skills to establish priority)
+    skills_source_dir = pathlib.Path("./Skills").resolve()
+    skills_targets: list[pathlib.Path] = [
+        home / ".agents" / "skills",
+        target_claude_skills,
+    ]
+    _sync_skills_folder(skills_source_dir, skills_targets)
+
+    # 3. Handle Claude Code Skills from commands - all commands, strip claude_ prefix
     if target_claude_root.exists():
-        extract_prompts_to_md(toml_files, target_claude_cmds, ".claude",
-                             strip_prefix=CLAUDE_PREFIX,
-                             include_description=True,
-                             extra_fields={"disable-model-invocation": True})
+        _sync_commands_as_skills(toml_files, target_claude_skills, strip_prefix=CLAUDE_PREFIX)
     else:
         print("Skipping .claude: directory does not exist.")
 
-    # 3. Handle Roo (Extraction) - only shared files
+    # 4. Handle Roo (Extraction) - only shared files
     target_roo_root = home / ".roo"
     target_roo_cmds = home / ".roo" / "commands"
     if target_roo_root.exists():
@@ -700,7 +866,7 @@ def main() -> None:
     else:
         print("Skipping .roo: directory does not exist.")
 
-    # 4. Handle Codex (Extraction with Description) - only shared files
+    # 5. Handle Codex (Extraction with Description) - only shared files
     target_codex_root = home / ".codex"
     target_codex_prompts = home / ".codex" / "prompts"
     if target_codex_root.exists():
@@ -709,7 +875,7 @@ def main() -> None:
     else:
         print("Skipping .codex: directory does not exist.")
 
-    # 5. Handle OpenCode
+    # 6. Handle OpenCode
     target_opencode_config = home / ".config" / "opencode"
     target_opencode_cmds = target_opencode_config / "command"
     target_opencode_agents = target_opencode_config / "agent"
@@ -727,19 +893,11 @@ def main() -> None:
     else:
         print("Skipping OpenCode: directory does not exist.")
 
-    # 6. Handle Agents Folder Symlinks to Claude Code
+    # 7. Handle Agents Folder Symlinks to Claude Code
     if target_claude_root.exists():
         _sync_agents_folder(target_claude_agents)
     else:
         print("  Skipping agents folder: .claude directory does not exist.")
-
-    # 7. Handle Skills Folder Symlinks
-    skills_source_dir = pathlib.Path("./Skills").resolve()
-    skills_targets: list[pathlib.Path] = [
-        home / ".agents" / "skills",
-        home / ".claude" / "skills",
-    ]
-    _sync_skills_folder(skills_source_dir, skills_targets)
 
     # 8. Handle AGENTS.md Symlinks
     _sync_agents_md_links(home)

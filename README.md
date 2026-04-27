@@ -54,13 +54,13 @@ The `sync_commands.py` script automates the distribution of configs to supported
 
 1.  **Commands Distribution**:
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
-    - **Claude**: Extracts the `prompt` and `description` from `.toml` files and saves them as Markdown files with YAML front matter in `~/.claude/commands/`. Includes `disable-model-invocation: true` field. Commands prefixed with `claude_` (e.g., `claude_agent_implement.toml`) are Claude-only and have the prefix stripped in the output (e.g., `agent_implement.md`).
+    - **Claude Code (Skills)**: Converts `.toml` commands to Claude Code skills format at `~/.claude/skills/<skill-name>/SKILL.md`. Each skill is a directory containing a `SKILL.md` file with YAML front matter (`name`, `description`, `disable-model-invocation: true`). Skill names are sanitized (lowercase, underscores→hyphens, max 64 chars). Commands prefixed with `claude_` have the prefix stripped (e.g., `claude_agent_implement.toml` → `agent-implement/SKILL.md`). A manifest file (`.sync_commands_manifest`) tracks which skills are managed by this script to avoid conflicts with skills from other sources.
     - **Roo**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
     - **Codex**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed). Files are written to `~/.codex/prompts/`.
     - **OpenCode**: Extracts prompts and descriptions to `.md` files with YAML front matter in `~/.config/opencode/command/`. All commands (including `claude_` prefixed) are synced with the prefix stripped.
     - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools (except OpenCode, which receives all commands with prefix stripped). All other commands are shared across all tools.
-    - **File Regeneration**: All `.md` command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
-    - **Cleanup**: Automatically removes stale symlinks and `.md` files when source `.toml` files are deleted.
+    - **File Regeneration**: All command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
+    - **Cleanup**: Automatically removes stale symlinks and files when source `.toml` files are deleted. For Claude skills, only skills tracked in the manifest are cleaned up.
 
 2.  **Agents Folder Distribution**:
     - **Claude**: Symlinks `.md` files from `./agents/` to `~/.claude/agents/` for Claude Code's agent system.
@@ -68,10 +68,10 @@ The `sync_commands.py` script automates the distribution of configs to supported
     - Supports custom agent definitions that can be referenced in command prompts.
 
 3.  **Skills Folder Distribution**:
-    - **Claude**: Symlinks skill subdirectories from `./Skills/` to `~/.claude/skills/`.
+    - **Claude**: Skills come from two sources: (1) symlinked skill directories from `./Skills/` and (2) converted commands from `./commands/` (see Commands Distribution above). Symlinked skills take priority if names conflict.
     - **Global Skills**: Symlinks skill subdirectories from `./Skills/` to `~/.agents/skills/` for use across different AI assistants.
     - Each skill is a subdirectory containing a `SKILL.md` file and optional reference materials.
-    - **Cleanup**: Automatically removes stale skill symlinks when source skill directories are deleted.
+    - **Cleanup**: Automatically removes stale skill symlinks when source skill directories are deleted. Command-based skills are only cleaned up if tracked in the manifest.
 
 4.  **`AGENTS.md` Distribution**:
     - Symlinks the root `AGENTS.md` to the appropriate location and filename for each agent:
@@ -106,9 +106,10 @@ python3 sync_commands.py
 
 The script will:
 - Check for existing directories in your home folder.
-- Create necessary subdirectories (e.g., `commands/`).
+- Create necessary subdirectories (e.g., `commands/`, `skills/`).
 - Create symlinks for `AGENTS.md` and command files.
-- Generate Markdown command files for Claude.
+- Generate skills for Claude Code (in `~/.claude/skills/<skill-name>/SKILL.md` format).
+- Generate Markdown command files for other tools.
 - Report success or errors (e.g., missing permissions on Windows).
 
 ## Adding New Commands

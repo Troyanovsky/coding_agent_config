@@ -1,6 +1,6 @@
 # Coding Agent Configuration
 
-This repository serves as a centralized source of truth for coding agent configurations, workflows, and custom commands. It is designed to maintain consistency across different AI coding assistants (Claude, Gemini, Qwen, Roo, Codex, iFlow, OpenCode, etc.) by synchronizing a master `AGENTS.md` and a set of custom commands.
+This repository serves as a centralized source of truth for coding agent configurations, workflows, and reusable command skills. It is designed to maintain consistency across different AI coding assistants (Claude, Gemini, Qwen, Roo, Codex, iFlow, OpenCode, etc.) by synchronizing a master `AGENTS.md` and a set of command definitions.
 
 ## Structure
 
@@ -56,11 +56,11 @@ The `sync_commands.py` script automates the distribution of configs to supported
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
     - **Claude Code (Skills)**: Converts `.toml` commands to Claude Code skills format at `~/.claude/skills/<skill-name>/SKILL.md`. Each skill is a directory containing a `SKILL.md` file with YAML front matter (`name`, `description`, `disable-model-invocation: true`). Skill names are sanitized (lowercase, underscores→hyphens, max 64 chars). Commands prefixed with `claude_` have the prefix stripped (e.g., `claude_agent_implement.toml` → `agent-implement/SKILL.md`). A manifest file (`.sync_commands_manifest`) tracks which skills are managed by this script to avoid conflicts with skills from other sources.
     - **Roo**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
-    - **Codex**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed). Files are written to `~/.codex/prompts/`.
+    - **Codex (Skills)**: Converts shared `.toml` commands to Agent Skills at `~/.agents/skills/<skill-name>/SKILL.md`. Each generated skill includes `name`, `description`, and `disable-model-invocation: true` front matter, plus `agents/openai.yaml` with `allow_implicit_invocation: false` so the skill behaves like an explicit command. Deprecated generated prompt files matching current shared commands are removed from `~/.codex/prompts/`.
     - **OpenCode**: Extracts prompts and descriptions to `.md` files with YAML front matter in `~/.config/opencode/command/`. All commands (including `claude_` prefixed) are synced with the prefix stripped.
     - **Command Filtering**: Files starting with `claude_` are distributed only to Claude tools (except OpenCode, which receives all commands with prefix stripped). All other commands are shared across all tools.
     - **File Regeneration**: All command files are fully regenerated on each run. Files that match a source `.toml` but were not recreated in the current run are considered stale and removed. This ensures consistency and prevents orphaned files from accumulating.
-    - **Cleanup**: Automatically removes stale symlinks and files when source `.toml` files are deleted. For Claude skills, only skills tracked in the manifest are cleaned up.
+    - **Cleanup**: Automatically removes stale symlinks and files when source `.toml` files are deleted. For generated skills, only skills tracked in the manifest are cleaned up.
 
 2.  **Agents Folder Distribution**:
     - **Claude**: Symlinks `.md` files from `./agents/` to `~/.claude/agents/` for Claude Code's agent system.
@@ -69,7 +69,7 @@ The `sync_commands.py` script automates the distribution of configs to supported
 
 3.  **Skills Folder Distribution**:
     - **Claude**: Skills come from two sources: (1) symlinked skill directories from `./Skills/` and (2) converted commands from `./commands/` (see Commands Distribution above). Symlinked skills take priority if names conflict.
-    - **Global Skills**: Symlinks skill subdirectories from `./Skills/` to `~/.agents/skills/` for use across different AI assistants.
+    - **Codex / Global Skills**: Skills come from two sources: (1) symlinked skill directories from `./Skills/` and (2) converted shared commands from `./commands/`. Both are placed under `~/.agents/skills/`, which Codex scans as the user-level skills directory.
     - Each skill is a subdirectory containing a `SKILL.md` file and optional reference materials.
     - **Cleanup**: Automatically removes stale skill symlinks when source skill directories are deleted. Command-based skills are only cleaned up if tracked in the manifest.
 
@@ -109,6 +109,7 @@ The script will:
 - Create necessary subdirectories (e.g., `commands/`, `skills/`).
 - Create symlinks for `AGENTS.md` and command files.
 - Generate skills for Claude Code (in `~/.claude/skills/<skill-name>/SKILL.md` format).
+- Generate skills for Codex (in `~/.agents/skills/<skill-name>/SKILL.md` format).
 - Generate Markdown command files for other tools.
 - Report success or errors (e.g., missing permissions on Windows).
 

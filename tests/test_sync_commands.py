@@ -512,6 +512,195 @@ class TestProcessSourceFile(unittest.TestCase):
         self.assertFalse((self.target_dir / "missing.md").exists())
 
 
+class TestSyncCommandsAsSkills(unittest.TestCase):
+    """Test command TOML conversion to Agent Skills format."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.source_dir = Path(self.test_dir) / "source"
+        self.target_dir = Path(self.test_dir) / "skills"
+        self.source_dir.mkdir()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_syncs_command_to_skill(self):
+        """A TOML command should become a SKILL.md file with metadata."""
+        source_file = self.source_dir / "review_changes.toml"
+        source_file.write_text(
+            'description = "Review changed files."\n'
+            'prompt = "Review the diff."\n',
+            encoding="utf-8",
+        )
+
+        sync_commands._sync_commands_as_skills(
+            [source_file],
+            self.target_dir,
+            "test skills",
+        )
+
+        skill_file = self.target_dir / "review-changes" / "SKILL.md"
+        self.assertTrue(skill_file.exists())
+        content = skill_file.read_text(encoding="utf-8")
+        self.assertIn("name: review-changes", content)
+        self.assertIn("description: Review changed files.", content)
+        self.assertIn("disable-model-invocation: true", content)
+        self.assertIn("Review the diff.", content)
+
+    def test_syncs_codex_policy_metadata(self):
+        """Codex skills should include OpenAI metadata for explicit invocation."""
+        source_file = self.source_dir / "git_commit.toml"
+        source_file.write_text(
+            'description = "Generate a commit message."\n'
+            'prompt = "Inspect changes."\n',
+            encoding="utf-8",
+        )
+
+        sync_commands._sync_commands_as_skills(
+            [source_file],
+            self.target_dir,
+            "Codex skills",
+            include_openai_policy=True,
+        )
+
+        policy_file = self.target_dir / "git-commit" / "agents" / "openai.yaml"
+        self.assertTrue(policy_file.exists())
+        self.assertEqual(
+            policy_file.read_text(encoding="utf-8"),
+            "policy:\n  allow_implicit_invocation: false\n",
+        )
+
+    def test_skips_unmanaged_conflict(self):
+        """Existing unmanaged skills should not be overwritten."""
+        skill_dir = self.target_dir / "existing"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text("original", encoding="utf-8")
+        source_file = self.source_dir / "existing.toml"
+        source_file.write_text(
+            'description = "New description."\n'
+            'prompt = "New prompt."\n',
+            encoding="utf-8",
+        )
+
+        sync_commands._sync_commands_as_skills(
+            [source_file],
+            self.target_dir,
+            "test skills",
+        )
+
+        self.assertEqual(skill_file.read_text(encoding="utf-8"), "original")
+        self.assertEqual(sync_commands._read_skills_manifest(self.target_dir / ".sync_commands_manifest"), set())
+
+    def test_removes_stale_managed_skill_with_openai_metadata(self):
+        """Stale generated skills should be removed using the manifest."""
+        stale_dir = self.target_dir / "stale"
+        stale_policy_dir = stale_dir / "agents"
+        stale_policy_dir.mkdir(parents=True)
+        (stale_dir / "SKILL.md").write_text("stale", encoding="utf-8")
+        (stale_policy_dir / "openai.yaml").write_text("policy: {}\n", encoding="utf-8")
+        sync_commands._write_skills_manifest(self.target_dir / ".sync_commands_manifest", {"stale"})
+
+        sync_commands._sync_commands_as_skills(
+            [],
+            self.target_dir,
+            "test skills",
+        )
+
+        self.assertFalse(stale_dir.exists())
+        self.assertEqual(sync_commands._read_skills_manifest(self.target_dir / ".sync_commands_manifest"), set())
+
+
+class TestDeprecatedCodexPromptCleanup(unittest.TestCase):
+    """Test cleanup for Codex prompt files replaced by skills."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.prompts_dir = Path(self.test_dir) / "prompts"
+        self.prompts_dir.mkdir()
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_removes_only_matching_command_prompt_files(self):
+        """Cleanup should preserve unrelated user prompt files."""
+        command_prompt = self.prompts_dir / "review_changes.md"
+        user_prompt = self.prompts_dir / "personal_prompt.md"
+        command_prompt.write_text("generated", encoding="utf-8")
+        user_prompt.write_text("user", encoding="utf-8")
+
+        sync_commands._cleanup_deprecated_codex_prompts(
+            self.prompts_dir,
+            [Path("review_changes.toml")],
+        )
+
+        self.assertFalse(command_prompt.exists())
+        self.assertTrue(user_prompt.exists())
+
+
+class TestSyncSkillsFolder(unittest.TestCase):
+    """Test syncing hand-authored skill directories."""
+
+    def setUp(self):
+        self.test_dir = tempfile.mkdtemp()
+        self.skills_source_dir = Path(self.test_dir) / "Skills"
+        self.target_dir = Path(self.test_dir) / "target" / "skills"
+        self.skills_source_dir.mkdir()
+        self.target_dir.mkdir(parents=True)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.test_dir)
+
+    def test_hand_authored_skill_replaces_generated_skill(self):
+        """Skill folder symlinks should take priority over generated skills."""
+        source_skill = self.skills_source_dir / "review"
+        source_skill.mkdir()
+        (source_skill / "SKILL.md").write_text(
+            "---\nname: review\ndescription: Review code.\n---\n\nReview.",
+            encoding="utf-8",
+        )
+
+        generated_skill = self.target_dir / "review"
+        generated_skill.mkdir()
+        (generated_skill / "SKILL.md").write_text("generated", encoding="utf-8")
+        sync_commands._write_skills_manifest(self.target_dir / ".sync_commands_manifest", {"review"})
+
+        sync_commands._sync_skills_folder(self.skills_source_dir, [self.target_dir])
+
+        self.assertTrue(generated_skill.is_symlink())
+        self.assertTrue(os.path.samefile(generated_skill.resolve(), source_skill))
+
+    def test_generated_skill_does_not_overwrite_skill_symlink(self):
+        """Command-generated skills should skip existing symlinked skills."""
+        source_skill = self.skills_source_dir / "review"
+        source_skill.mkdir()
+        (source_skill / "SKILL.md").write_text(
+            "---\nname: review\ndescription: Review code.\n---\n\nReview.",
+            encoding="utf-8",
+        )
+        sync_commands._sync_skills_folder(self.skills_source_dir, [self.target_dir])
+        sync_commands._write_skills_manifest(self.target_dir / ".sync_commands_manifest", {"review"})
+
+        command_file = Path(self.test_dir) / "review.toml"
+        command_file.write_text(
+            'description = "Generated review."\n'
+            'prompt = "Generated prompt."\n',
+            encoding="utf-8",
+        )
+
+        sync_commands._sync_commands_as_skills(
+            [command_file],
+            self.target_dir,
+            "test skills",
+        )
+
+        self.assertTrue((self.target_dir / "review").is_symlink())
+        self.assertEqual(sync_commands._read_skills_manifest(self.target_dir / ".sync_commands_manifest"), set())
+
+
 class TestParseYamlFrontmatter(unittest.TestCase):
     """Test the _parse_yaml_frontmatter helper function."""
 
@@ -1371,13 +1560,12 @@ class TestMain(unittest.TestCase):
             with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
                 sync_commands.main()
 
-            # Check that files were processed for .claude
-            # The claude_root is in test_dir/home/.claude
-            self.assertTrue((claude_root / "commands").exists())
-            # claude_test.toml -> test.md (prefix stripped)
-            self.assertTrue((claude_root / "commands" / "test.md").exists())
-            # shared.toml -> shared.md (no prefix to strip)
-            self.assertTrue((claude_root / "commands" / "shared.md").exists())
+            # Check that files were processed for .claude skills
+            self.assertTrue((claude_root / "skills").exists())
+            # claude_test.toml -> test/SKILL.md (prefix stripped)
+            self.assertTrue((claude_root / "skills" / "test" / "SKILL.md").exists())
+            # shared.toml -> shared/SKILL.md (no prefix to strip)
+            self.assertTrue((claude_root / "skills" / "shared" / "SKILL.md").exists())
         finally:
             os.chdir(original_cwd)
 
@@ -1400,9 +1588,47 @@ class TestMain(unittest.TestCase):
             with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
                 sync_commands.main()
 
-            # Files should be processed
-            self.assertTrue((claude_root / "commands").exists())
-            self.assertTrue((claude_root / "commands" / "shared.md").exists())
+            # Files should be processed as skills
+            self.assertTrue((claude_root / "skills").exists())
+            self.assertTrue((claude_root / "skills" / "shared" / "SKILL.md").exists())
+        finally:
+            os.chdir(original_cwd)
+
+    def test_processes_codex_shared_files_as_global_skills(self):
+        """Codex shared commands should be processed as user-level skills."""
+        shared_file = self.commands_dir / "shared_command.toml"
+        shared_file.write_text(
+            'description = "Shared command."\n'
+            'prompt = "shared"\n',
+            encoding="utf-8",
+        )
+        claude_file = self.commands_dir / "claude_only.toml"
+        claude_file.write_text(
+            'description = "Claude only."\n'
+            'prompt = "claude"\n',
+            encoding="utf-8",
+        )
+
+        codex_root = self.home_dir / ".codex"
+        prompts_dir = codex_root / "prompts"
+        prompts_dir.mkdir(parents=True)
+        old_prompt = prompts_dir / "shared_command.md"
+        old_prompt.write_text("old generated prompt", encoding="utf-8")
+
+        import os
+        original_cwd = os.getcwd()
+        os.chdir(self.test_dir)
+
+        try:
+            with unittest.mock.patch('pathlib.Path.home', return_value=self.home_dir):
+                sync_commands.main()
+
+            global_skills_dir = self.home_dir / ".agents" / "skills"
+            skill_file = global_skills_dir / "shared-command" / "SKILL.md"
+            self.assertTrue(skill_file.exists())
+            self.assertTrue((global_skills_dir / "shared-command" / "agents" / "openai.yaml").exists())
+            self.assertFalse((global_skills_dir / "claude-only" / "SKILL.md").exists())
+            self.assertFalse(old_prompt.exists())
         finally:
             os.chdir(original_cwd)
 

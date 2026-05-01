@@ -401,24 +401,64 @@ def _write_skills_manifest(manifest_path: pathlib.Path, skill_names: set[str]) -
         print(f"  Warning: Could not write skills manifest: {e}")
 
 
+def _remove_generated_skill_dir(skill_dir: pathlib.Path) -> bool:
+    """
+    Removes a generated skill directory if it only contains known generated files.
+
+    Returns True when the directory was fully removed.
+    """
+    if not skill_dir.exists() or skill_dir.is_symlink():
+        return False
+
+    try:
+        skill_file = skill_dir / "SKILL.md"
+        if skill_file.exists():
+            skill_file.unlink()
+
+        openai_policy_file = skill_dir / "agents" / "openai.yaml"
+        if openai_policy_file.exists():
+            openai_policy_file.unlink()
+
+        openai_agents_dir = skill_dir / "agents"
+        if openai_agents_dir.exists() and not any(openai_agents_dir.iterdir()):
+            openai_agents_dir.rmdir()
+
+        if not any(skill_dir.iterdir()):
+            skill_dir.rmdir()
+            return True
+    except OSError as e:
+        print(f"  Error removing generated skill '{skill_dir.name}': {e}")
+
+    return False
+
+
 def _sync_commands_as_skills(
     toml_files: list[pathlib.Path],
     target_skills_dir: pathlib.Path,
+    tool_name: str,
     strip_prefix: Optional[str] = None,
+    disable_model_invocation: bool = True,
+    include_openai_policy: bool = False,
 ) -> None:
     """
-    Syncs .toml command files to Claude Code skills format.
+    Syncs .toml command files to Agent Skills format.
 
-    Creates ~/.claude/skills/<skill-name>/SKILL.md for each command.
+    Creates <target_skills_dir>/<skill-name>/SKILL.md for each command.
     Uses a manifest file to track which skills are managed by this script,
     ensuring we don't overwrite or remove skills from other sources.
 
     Args:
         toml_files: List of source .toml file paths
-        target_skills_dir: Target skills directory (e.g., ~/.claude/skills)
+        target_skills_dir: Target skills directory
+            (e.g., ~/.claude/skills or ~/.agents/skills)
+        tool_name: Name of the tool or target scope for logging
         strip_prefix: Optional prefix to strip from skill names
+        disable_model_invocation: Whether to include Claude's explicit-only
+            skill metadata field.
+        include_openai_policy: Whether to write Codex-specific skill metadata
+            that disables implicit invocation.
     """
-    print("Processing Claude Code skills...")
+    print(f"Processing {tool_name}...")
     target_skills_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_path = target_skills_dir / SKILLS_MANIFEST_FILENAME
@@ -436,7 +476,10 @@ def _sync_commands_as_skills(
         skill_file = skill_dir / "SKILL.md"
 
         # Check for conflict with non-managed skill
-        if (skill_dir.exists() or skill_dir.is_symlink()) and skill_name not in managed_skills:
+        if skill_dir.is_symlink():
+            print(f"  Warning: Skill '{skill_name}' already exists as a symlink. Skipping.")
+            continue
+        if skill_dir.exists() and skill_name not in managed_skills:
             print(f"  Warning: Skill '{skill_name}' already exists (not managed by this script). Skipping.")
             continue
 
@@ -459,9 +502,16 @@ def _sync_commands_as_skills(
             frontmatter = {
                 "name": skill_name,
                 "description": description,
-                "disable-model-invocation": True,
             }
+            if disable_model_invocation:
+                frontmatter["disable-model-invocation"] = True
             _write_prompt_file(skill_file, prompt_content, description=None, extra_fields=frontmatter)
+
+            if include_openai_policy:
+                openai_agents_dir = skill_dir / "agents"
+                openai_agents_dir.mkdir(parents=True, exist_ok=True)
+                openai_policy_file = openai_agents_dir / "openai.yaml"
+                _write_openai_skill_policy(openai_policy_file, allow_implicit_invocation=False)
 
             print(f"  Created skill {source_file.name} -> skills/{skill_name}/SKILL.md")
             current_skills.add(skill_name)
@@ -474,21 +524,44 @@ def _sync_commands_as_skills(
     for skill_name in stale_skills:
         skill_dir = target_skills_dir / skill_name
         if skill_dir.exists() and not skill_dir.is_symlink():
-            try:
-                skill_file = skill_dir / "SKILL.md"
-                if skill_file.exists():
-                    skill_file.unlink()
-                # Only remove directory if empty
-                if not any(skill_dir.iterdir()):
-                    skill_dir.rmdir()
-                    print(f"  Removed stale skill: {skill_name}")
-                else:
-                    print(f"  Warning: Could not remove skill '{skill_name}': directory not empty")
-            except OSError as e:
-                print(f"  Error removing stale skill '{skill_name}': {e}")
+            if _remove_generated_skill_dir(skill_dir):
+                print(f"  Removed stale skill: {skill_name}")
+            else:
+                print(f"  Warning: Could not remove skill '{skill_name}': directory not empty")
 
     # Update manifest
     _write_skills_manifest(manifest_path, current_skills)
+
+
+def _write_openai_skill_policy(policy_file: pathlib.Path, allow_implicit_invocation: bool) -> None:
+    """
+    Writes Codex-specific skill invocation policy metadata.
+    """
+    policy_file.write_text(
+        "policy:\n"
+        f"  allow_implicit_invocation: {str(allow_implicit_invocation).lower()}\n",
+        encoding="utf-8",
+    )
+
+
+def _cleanup_deprecated_codex_prompts(
+    target_prompts_dir: pathlib.Path,
+    toml_files: list[pathlib.Path],
+) -> None:
+    """
+    Removes generated Codex prompt files now replaced by skills.
+
+    The previous Codex sync wrote shared command prompts to ~/.codex/prompts.
+    During migration, remove only files whose stems match current shared
+    command sources so unrelated user-authored prompt files are preserved.
+    """
+    if not target_prompts_dir.exists():
+        return
+
+    expected_stems, _ = _compute_expected_md_stems(toml_files, strip_prefix=None)
+    for item in target_prompts_dir.glob("*.md"):
+        if item.stem in expected_stems:
+            safe_remove(item, context="deprecated Codex prompt replaced by skill")
 
 
 def _cleanup_stale_symlinks(cmd_dir: pathlib.Path, source_files: list[pathlib.Path], source_dir_resolved: pathlib.Path) -> None:
@@ -709,6 +782,7 @@ def _sync_skills_folder(skills_source_dir: pathlib.Path, target_dirs: list[pathl
 
         source_dir_resolved = skills_source_dir.resolve()
         skill_names: set[str] = set()
+        managed_generated_skills = _read_skills_manifest(target_dir / SKILLS_MANIFEST_FILENAME)
 
         for skill_dir in skill_dirs:
             skill_names.add(skill_dir.name)
@@ -720,6 +794,14 @@ def _sync_skills_folder(skills_source_dir: pathlib.Path, target_dirs: list[pathl
                     current_target = link_name.resolve()
                     if os.path.samefile(current_target, expected_target):
                         print(f"    Skipping {skill_dir.name}: symlink already exists")
+                        continue
+                    elif link_name.is_dir() and not link_name.is_symlink() and link_name.name in managed_generated_skills:
+                        print(f"    Replacing generated skill {skill_dir.name} with symlink")
+                        if not _remove_generated_skill_dir(link_name):
+                            print(f"    Warning: Could not replace generated skill {skill_dir.name}")
+                            continue
+                    elif link_name.is_dir() and not link_name.is_symlink():
+                        print(f"    Warning: Skill {skill_dir.name} already exists as a directory. Skipping.")
                         continue
                     else:
                         print(f"    Replacing incorrect symlink {skill_dir.name}")
@@ -839,6 +921,11 @@ def main() -> None:
     target_claude_root = home / ".claude"
     target_claude_agents = home / ".claude" / "agents"
     target_claude_skills = home / ".claude" / "skills"
+    target_codex_root = home / ".codex"
+    target_global_skills = home / ".agents" / "skills"
+
+    if target_codex_root.exists():
+        target_global_skills.parent.mkdir(parents=True, exist_ok=True)
 
     # 1. Handle Symlinks (Gemini, Qwen, iflow) - only shared files
     _sync_symlink_targets(shared_files, source_dir, targets_symlink)
@@ -846,14 +933,20 @@ def main() -> None:
     # 2. Handle Skills Folder Symlinks (must run before commands→skills to establish priority)
     skills_source_dir = pathlib.Path("./Skills").resolve()
     skills_targets: list[pathlib.Path] = [
-        home / ".agents" / "skills",
+        target_global_skills,
         target_claude_skills,
     ]
     _sync_skills_folder(skills_source_dir, skills_targets)
 
     # 3. Handle Claude Code Skills from commands - all commands, strip claude_ prefix
     if target_claude_root.exists():
-        _sync_commands_as_skills(toml_files, target_claude_skills, strip_prefix=CLAUDE_PREFIX)
+        _sync_commands_as_skills(
+            toml_files,
+            target_claude_skills,
+            "Claude Code skills",
+            strip_prefix=CLAUDE_PREFIX,
+            disable_model_invocation=True,
+        )
     else:
         print("Skipping .claude: directory does not exist.")
 
@@ -866,12 +959,16 @@ def main() -> None:
     else:
         print("Skipping .roo: directory does not exist.")
 
-    # 5. Handle Codex (Extraction with Description) - only shared files
-    target_codex_root = home / ".codex"
+    # 5. Handle Codex Skills from shared commands
     target_codex_prompts = home / ".codex" / "prompts"
     if target_codex_root.exists():
-        extract_prompts_to_md(shared_files, target_codex_prompts, ".codex",
-                             include_description=True)
+        _sync_commands_as_skills(
+            shared_files,
+            target_global_skills,
+            "Codex skills",
+            include_openai_policy=True,
+        )
+        _cleanup_deprecated_codex_prompts(target_codex_prompts, shared_files)
     else:
         print("Skipping .codex: directory does not exist.")
 

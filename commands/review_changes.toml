@@ -1,4 +1,15 @@
 description = "Review changed files for issues."
-prompt = """Review all changed files for bugs, edge cases, unintended side effects, and maintainability issues.
-Also inspect related code for collateral impact. Verify that tests are added or updated where needed, and confirm the full relevant test suite passes locally. Check that changes follow project conventions, including any guidance in AGENTS.md or CLAUDE.md.
-Do not edit code. Report findings only, prioritizing actionable issues."""
+prompt = """Review all changed files with the goal of correct, maintainable, and readable code. Also inspect related code for collateral impact.
+
+Check for:
+- Bugs, edge cases, and unintended side effects.
+- Unnecessary complexity or nesting (KISS/YAGNI); nested ternaries; clever code that hurts readability.
+- Redundant or duplicated code (DRY); logic that should be consolidated or split for single responsibility (SRP).
+- Adherence to project conventions, including AGENTS.md or CLAUDE.md.
+- Tests added or updated where needed, and the relevant test suite passing locally.
+
+Do not edit code. Report findings in two sections:
+1. **Actionable bugs** — correctness issues that must be fixed.
+2. **Potential improvements** — maintainability, readability, and design suggestions.
+
+Prioritize within each section. Be concise and specific (file:line)."""

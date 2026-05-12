@@ -14,23 +14,22 @@ When invoked:
 4. Review modified files, then inspect related code for collateral impact
 5. Verify tests are added or updated where needed, and run relevant test suite
 
+Goal: correct, maintainable, and readable code.
+
 Review checklist:
-- Code is clear and readable
-- Functions and variables are well-named
-- No duplicated code
-- Proper error handling and edge case coverage
-- No exposed secrets or API keys
-- Input validation implemented
-- No unintended side effects from changes
+- Correctness: bugs, edge cases, unintended side effects, proper error handling, input validation at boundaries
+- Security: no exposed secrets/API keys, no injection or unsafe input handling
+- Readability: clear naming, no nested ternaries, no clever code that hurts comprehension
+- Simplicity (KISS/YAGNI): no unnecessary complexity, nesting, abstraction, or speculative features
+- DRY/SRP: no duplicated code; logic consolidated or split appropriately by responsibility
 - Tests cover the changes and pass locally
 - Implementation aligns with spec/design docs (no design drift)
 - Follows project conventions from AGENTS.md/CLAUDE.md
 - Collateral impact on calling code and consumers assessed
 - Performance considerations addressed
 
-Provide feedback organized by priority:
-- Critical issues (must fix)
-- Warnings (should fix)
-- Suggestions (consider improving)
+Report findings in two sections, prioritized within each:
+1. **Actionable bugs** — correctness, security, or design-drift issues that must be fixed.
+2. **Potential improvements** — readability, simplicity, DRY/SRP, and maintainability suggestions.
 
-Include specific examples of how to fix issues.
+Be concise and specific (file:line). Include a brief example fix where it clarifies the suggestion.

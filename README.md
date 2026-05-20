@@ -20,8 +20,8 @@ This repository serves as a centralized source of truth for coding agent configu
     - `explain_learn.toml`: Explain changes & technical decisions clearly and concisely for learning programming/architectural design
     - `git_commit.toml`: Generate Conventional Commits formatted messages
     - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
-    - `issue_tracker.toml`: Maintain issue tracker JSON files in doc/docs folder (global `ISSUES.json` and feature-scoped `issues-<feature>.json`)
     - `PRD.toml`: Generate PRD based on iterative questions
+    - ~~`issue_tracker.toml`~~: **Retired** — superseded by the `simple-*` skill suite (spec → design → tasks → implement → run). The sync script will clean up generated artifacts on next run.
     - `review_changes.toml`: Review changed files for bugs and issues
     - `start_task.toml`: Prepare before starting to make sure git is clean
     - `update_doc.toml`: Update documentation based on code changes

@@ -722,6 +722,14 @@ def _create_agents_md_link(agents_md_source: pathlib.Path, root_dir: pathlib.Pat
     if not link_path.exists() and not link_path.is_symlink():
         safe_symlink(agents_md_source, link_path)
     else:
+        if not link_path.is_symlink() and link_path.is_file():
+            try:
+                if not link_path.read_text(encoding="utf-8").strip():
+                    print(f"  Warning: {root_dir.name}/{target_file_name} exists as an empty file, not a symlink.")
+                    print(f"  -> Delete it manually and re-run to create the symlink to {agents_md_source.name}.")
+                    return True
+            except (OSError, UnicodeDecodeError):
+                pass
         print(f"  Skipping AGENTS.md link to {root_dir.name}/{target_file_name}: already exists.")
     return True
 

@@ -1,9 +1,18 @@
 ## General Workflow
 1. Understand the user request and examine the existing codebase thoroughly.  
-2. Propose a step-by-step solution plan.  
-3. Implement changes according to the plan.  
-4. Verify changes through tests while preserving existing functionality.  
-5. Summarize changes concisely.  
+2. Propose a step-by-step solution plan, pairing each step with how it will be verified.  
+3. Define verifiable success criteria before implementing. For a bug fix, write a failing test that reproduces the bug first.  
+4. Implement changes according to the plan.  
+5. Verify changes through tests while preserving existing functionality.  
+6. Summarize changes concisely.  
+
+
+## Before Implementing
+
+- State your assumptions explicitly. If uncertain, ask before coding.
+- If the request has multiple valid interpretations, present them—do not pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what is confusing and ask.
 
 
 ## Core Engineering Principles
@@ -20,7 +29,9 @@
 - Avoid deep nesting and complex control flow; refactor when logic becomes difficult to follow.
 - Group related logic into **logical modules or helpers**.
 - Limit changes to the **explicit scope of the task or PR**.
-- Do not remove, rename, or refactor unrelated code.
+- **Every changed line should trace directly to the requested task.** If it does not, remove it or justify it.
+- Do not remove, rename, or refactor unrelated code. Match existing style, even if you would do it differently.
+- Remove imports, variables, or functions that **your changes** made unused. Do not delete pre-existing dead code unless asked—mention it instead.
 - Preserve existing behavior unless a change is explicitly intended and documented.
 
 
@@ -76,4 +87,4 @@ Examples:
 
 ## Final Guiding Rule
 
-> Leave the codebase **clearer, safer, and easier to maintain** than you found it.
+> Leave the code you touched **clearer, safer, and easier to maintain** than you found it—without expanding scope into unrelated work.

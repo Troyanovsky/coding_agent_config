@@ -9,7 +9,7 @@ Check for:
 - Tests added or updated where needed, and the relevant test suite passing locally.
 
 Do not edit code. Report findings in two sections:
-1. **Actionable bugs** — correctness issues that must be fixed.
+1. **Actionable bugs** — correctness issues that must be fixed with concise user behavior description, fixing complexity & risk.
 2. **Potential improvements** — maintainability, readability, and design suggestions.
 
 Prioritize within each section. Be concise and specific (file:line)."""

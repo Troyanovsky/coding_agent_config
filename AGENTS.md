@@ -11,7 +11,7 @@
 
 - State your assumptions explicitly. If uncertain, ask before coding.
 - If the request has multiple valid interpretations, present them—do not pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
+- If you see a clearly better approach (simpler, safer, or more maintainable), say so before implementing and explain the tradeoff in 2-4 bullets. If the current request is still reasonable, proceed—unless the alternative avoids serious risk or wasted work, in which case wait for a decision.
 - If something is unclear, stop. Name what is confusing and ask.
 
 

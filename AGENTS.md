@@ -30,8 +30,9 @@
 - Group related logic into **logical modules or helpers**.
 - Limit changes to the **explicit scope of the task or PR**.
 - **Every changed line should trace directly to the requested task.** If it does not, remove it or justify it.
-- Do not remove, rename, or refactor unrelated code. Match existing style, even if you would do it differently.
-- Remove imports, variables, or functions that **your changes** made unused. Do not delete pre-existing dead code unless asked—mention it instead.
+- Do not remove, rename, or refactor code unrelated to the task. Match existing style, even if you would do it differently.
+- Remove code that your change makes unused, duplicated, unreachable, or obsolete.
+- Do not delete pre-existing dead code unless your change directly replaces it; mention it separately instead.
 - Preserve existing behavior unless a change is explicitly intended and documented.
 
 

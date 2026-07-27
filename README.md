@@ -5,25 +5,22 @@ This repository serves as a centralized source of truth for coding agent configu
 ## Structure
 
 - **`AGENTS.md`**: The core system instruction file. It defines:
-    - General and specific workflows (ARCHITECT, DEBUG, CODE).
+    - General development workflows.
     - Code quality principles (DRY, KISS, SOLID).
     - Formatting, naming, and security guidelines.
     - Documentation standards.
 - **`Useful_Skills.md`**: Documentation for useful external skills and tools that can enhance AI coding assistant capabilities.
 - **`commands/`**: A directory containing custom commands defined in TOML format:
-    - `architect.toml`: ARCHITECT a complete system architecture and implementation plan
     - `claude_agent_implement.toml`: (Claude-only) Implement tasks with baseline reproduction and validation
     - `debug_normal.toml`: DEBUG software bugs (standard workflow)
     - `debug_verify.toml`: DEBUG software bugs by iterating hypotheses with runtime log verification
     - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
-    - `edge_case.toml`: Generate product & technical edge cases
     - `explain_learn.toml`: Explain changes & technical decisions clearly and concisely for learning programming/architectural design
     - `git_commit.toml`: Generate Conventional Commits formatted messages
     - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
     - `PRD.toml`: Generate PRD based on iterative questions
     - ~~`issue_tracker.toml`~~: **Retired** — superseded by the `simple-*` skill suite (spec → design → tasks → implement → run). The sync script will clean up generated artifacts on next run.
     - `review_changes.toml`: Review changed files for bugs and issues
-    - `start_task.toml`: Prepare before starting to make sure git is clean
     - `update_doc.toml`: Update documentation based on code changes
     - Each `.toml` file defines a command with a `description` and a `prompt`.
 - **`agents/`**: Custom agent definitions for Claude Code:

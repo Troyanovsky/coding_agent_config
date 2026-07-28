@@ -11,17 +11,13 @@ This repository serves as a centralized source of truth for coding agent configu
     - Documentation standards.
 - **`Useful_Skills.md`**: Documentation for useful external skills and tools that can enhance AI coding assistant capabilities.
 - **`commands/`**: A directory containing custom commands defined in TOML format:
-    - `claude_agent_implement.toml`: (Claude-only) Implement tasks with baseline reproduction and validation
     - `debug_normal.toml`: DEBUG software bugs (standard workflow)
     - `debug_verify.toml`: DEBUG software bugs by iterating hypotheses with runtime log verification
     - `deep_dive.toml`: Deep dive into issues by inspecting relevant files
     - `explain_learn.toml`: Explain changes & technical decisions clearly and concisely for learning programming/architectural design
     - `git_commit.toml`: Generate Conventional Commits formatted messages
-    - `implement.toml`: IMPLEMENT code changes safely from clarified requirements with verification
     - `PRD.toml`: Generate PRD based on iterative questions
-    - ~~`issue_tracker.toml`~~: **Retired** — superseded by the `simple-*` skill suite (spec → design → tasks → implement → run). The sync script will clean up generated artifacts on next run.
     - `review_changes.toml`: Review changed files for bugs and issues
-    - `update_doc.toml`: Update documentation based on code changes
     - Each `.toml` file defines a command with a `description` and a `prompt`.
 - **`agents/`**: Custom agent definitions for Claude Code:
     - `code-reviewer.md`: Expert code review specialist for quality, security, and maintainability
@@ -51,7 +47,7 @@ The `sync_commands.py` script automates the distribution of configs to supported
 
 1.  **Commands Distribution**:
     - **Gemini, Qwen, iFlow**: Symlinks `.toml` files from `commands/` to `~/.<agent>/commands/`.
-    - **Claude Code (Skills)**: Converts `.toml` commands to Claude Code skills format at `~/.claude/skills/<skill-name>/SKILL.md`. Each skill is a directory containing a `SKILL.md` file with YAML front matter (`name`, `description`, `disable-model-invocation: true`). Skill names are sanitized (lowercase, underscores→hyphens, max 64 chars). Commands prefixed with `claude_` have the prefix stripped (e.g., `claude_agent_implement.toml` → `agent-implement/SKILL.md`). A manifest file (`.sync_commands_manifest`) tracks which skills are managed by this script to avoid conflicts with skills from other sources.
+    - **Claude Code (Skills)**: Converts `.toml` commands to Claude Code skills format at `~/.claude/skills/<skill-name>/SKILL.md`. Each skill is a directory containing a `SKILL.md` file with YAML front matter (`name`, `description`, `disable-model-invocation: true`). Skill names are sanitized (lowercase, underscores→hyphens, max 64 chars). Commands prefixed with `claude_` have the prefix stripped (e.g., `claude_custom_command.toml` → `custom-command/SKILL.md`). A manifest file (`.sync_commands_manifest`) tracks which skills are managed by this script to avoid conflicts with skills from other sources.
     - **Roo**: Extracts prompts and descriptions to `.md` files with YAML front matter for shared commands only (non-`claude_` prefixed).
     - **Codex (Skills)**: Converts shared `.toml` commands to Agent Skills at `~/.agents/skills/<skill-name>/SKILL.md`. Each generated skill includes `name`, `description`, and `disable-model-invocation: true` front matter, plus `agents/openai.yaml` with `allow_implicit_invocation: false` so the skill behaves like an explicit command. Deprecated generated prompt files matching current shared commands are removed from `~/.codex/prompts/`.
     - **OpenCode**: Extracts prompts and descriptions to `.md` files with YAML front matter in `~/.config/opencode/command/`. All commands (including `claude_` prefixed) are synced with the prefix stripped.

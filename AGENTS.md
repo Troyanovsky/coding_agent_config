@@ -34,6 +34,7 @@
 - Remove code that your change makes unused, duplicated, unreachable, or obsolete.
 - Do not delete pre-existing dead code unless your change directly replaces it; mention it separately instead.
 - Preserve existing behavior unless a change is explicitly intended and documented.
+- Do not leave generated build output in `/private/tmp`. Temporary build directories must be automatically cleaned up or explicitly retained with a documented reason.
 
 
 ## Naming, Constants, and Security

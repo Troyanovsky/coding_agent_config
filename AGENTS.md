@@ -1,11 +1,11 @@
 ## General Workflow
-1. Understand the user request and examine the existing codebase thoroughly.  
-2. Propose a step-by-step solution plan, pairing each step with how it will be verified.  
-3. Define verifiable success criteria before implementing. For a bug fix, write a failing test that reproduces the bug first.  
-4. Implement changes according to the plan.  
-5. Verify changes through tests while preserving existing functionality.  
-6. Summarize changes concisely.  
 
+1. Understand the user request and examine the existing codebase thoroughly.
+2. Propose a step-by-step solution plan, pairing each step with how it will be verified.
+3. Define verifiable success criteria before implementing. For a bug fix, write a failing test that reproduces the bug first.
+4. Implement changes according to the plan.
+5. Verify changes through tests while preserving existing functionality.
+6. Summarize changes concisely.
 
 ## Before Implementing
 
@@ -14,13 +14,11 @@
 - If you see a clearly better approach (simpler, safer, or more maintainable), say so before implementing and explain the tradeoff in 2-4 bullets. If the current request is still reasonable, proceed—unless the alternative avoids serious risk or wasted work, in which case wait for a decision.
 - If something is unclear, stop. Name what is confusing and ask.
 
-
 ## Core Engineering Principles
 
 - Code must prioritize **correctness, clarity, security, and maintainability**.
 - Apply **DRY, KISS, YAGNI, and SOLID** principles when they reduce complexity—not as dogma.
 - Prefer explicit, readable code over clever or overly compact implementations.
-
 
 ## Structure, Scope, and Complexity
 
@@ -36,14 +34,12 @@
 - Preserve existing behavior unless a change is explicitly intended and documented.
 - Do not leave generated build output in `/private/tmp`. Temporary build directories must be automatically cleaned up or explicitly retained with a documented reason.
 
-
 ## Naming, Constants, and Security
 
 - Use **descriptive, consistent names** that reflect domain intent.
 - Avoid magic numbers and hardcoded literals; use named constants or configuration.
 - **Never read/commit secrets, credentials, tokens, or API keys**. Credentials should be in `.env` files and you should not read that file.
 - Always consider security implications when modifying or introducing code.
-
 
 ## Documentation Standards
 
@@ -53,14 +49,12 @@
 - Comments should explain **why** something exists or behaves a certain way—**not restate what the code does**.
 - Update relevant documentation files **before merging changes**.
 
-
 ## Change Integrity & Correctness
 
 - Always verify assumptions by **reading existing code and documentation**.
 - Do not invent behavior, APIs, or changes beyond what is explicitly requested.
 - Avoid speculative or hypothetical implementations.
 - Ensure changes are correct, safe, and consistent with existing design.
-
 
 ## Git & Commit Hygiene
 
@@ -74,11 +68,11 @@
 ```
 
 Examples:
+
 - `fix(auth): correct token expiration handling`
 - `feat(profile): add user profile picture upload`
 
 - Use a commit body to explain **intent, context, and impact** with concise bullet points.
-
 
 ## Review Expectations
 
@@ -86,6 +80,9 @@ Examples:
 - Stylistic feedback should be grounded in these standards, not personal preference.
 - If a rule is violated, it must be addressed before merge.
 
+## Tool Usage Tips
+
+- For long-running tools and sub-agents, such as builds and code reviews, wait for a realistic completion interval and avoid repeated polling when no new information is expected.
 
 ## Final Guiding Rule
 

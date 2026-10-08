@@ -1,89 +1,42 @@
-## General Workflow
+# Engineering Guidelines
 
-1. Understand the user request and examine the existing codebase thoroughly.
-2. Propose a step-by-step solution plan, pairing each step with how it will be verified.
-3. Define verifiable success criteria before implementing. For a bug fix, write a failing test that reproduces the bug first.
-4. Implement changes according to the plan.
-5. Verify changes through tests while preserving existing functionality.
-6. Summarize changes concisely.
+## Workflow
 
-## Before Implementing
+- Scale planning and verification to the task’s complexity and risk.
+- Before implementation, resolve uncertainty using code, documentation, and available context. Ask clarifying questions about remaining ambiguities in scope, behavior, or approach.
+- Establish clear requirements, assumptions, success criteria, and an implementation plan with verification steps before coding.
+- If a clearly better approach exists, explain its tradeoffs. Proceed with the requested approach when reasonable; seek a decision if it risks serious harm or wasted work.
+- During implementation, resolve routine details independently within the agreed scope. Revisit clarification only when new evidence materially changes requirements or approach.
+- For bug fixes, first write a failing test that reproduces the bug.
+- Verify the result and preserve existing functionality. Summarize changes, verification, and any remaining limitations.
 
-- State your assumptions explicitly. If uncertain, ask before coding.
-- If the request has multiple valid interpretations, present them—do not pick silently.
-- If you see a clearly better approach (simpler, safer, or more maintainable), say so before implementing and explain the tradeoff in 2-4 bullets. If the current request is still reasonable, proceed—unless the alternative avoids serious risk or wasted work, in which case wait for a decision.
-- If something is unclear, stop. Name what is confusing and ask.
+## Scope and Change Integrity
 
-## Core Engineering Principles
-
-- Code must prioritize **correctness, clarity, security, and maintainability**.
-- Apply **DRY, KISS, YAGNI, and SOLID** principles when they reduce complexity—not as dogma.
-- Prefer explicit, readable code over clever or overly compact implementations.
-
-## Structure, Scope, and Complexity
-
-- Every function, class, or component must have a **single, clear responsibility**.
-- Prefer small, composable units over large, multi-purpose ones.
-- Avoid deep nesting and complex control flow; refactor when logic becomes difficult to follow.
-- Group related logic into **logical modules or helpers**.
-- Limit changes to the **explicit scope of the task or PR**.
-- **Every changed line should trace directly to the requested task.** If it does not, remove it or justify it.
-- Do not remove, rename, or refactor code unrelated to the task. Match existing style, even if you would do it differently.
-- Remove code that your change makes unused, duplicated, unreachable, or obsolete.
-- Do not delete pre-existing dead code unless your change directly replaces it; mention it separately instead.
+- Keep every change tied to the task. Avoid unrelated removal, renaming, or refactoring, and match existing style.
 - Preserve existing behavior unless a change is explicitly intended and documented.
-- Do not leave generated build output in `/private/tmp`. Temporary build directories must be automatically cleaned up or explicitly retained with a documented reason.
+- Verify assumptions against existing code and documentation; do not invent APIs, requirements, or speculative functionality.
+- Remove code made obsolete by your changes. Mention pre-existing dead code separately unless your change directly replaces it.
+- Clean up temporary build directories automatically, including those in `/private/tmp`, or document why they are retained.
 
-## Naming, Constants, and Security
+## Code Quality and Security
 
-- Use **descriptive, consistent names** that reflect domain intent.
-- Avoid magic numbers and hardcoded literals; use named constants or configuration.
-- **Never read/commit secrets, credentials, tokens, or API keys**. Credentials should be in `.env` files and you should not read that file.
-- Always consider security implications when modifying or introducing code.
+- Prioritize correctness, clarity, security, and maintainability.
+- Apply DRY, KISS, YAGNI, and SOLID pragmatically. Prefer the simplest readable design that meets current requirements; introduce abstractions when they reduce complexity.
+- Give functions, classes, and components a single clear responsibility. Keep related logic together and avoid deep nesting.
+- Use descriptive, consistent names. Use named constants for values with domain meaning or repeated use, and configuration for values that need to vary.
+- Never read or commit secrets, credentials, tokens, or API keys, including secret-bearing `.env` files.
+- Consider the security implications of changed code.
 
-## Documentation Standards
+## Documentation
 
-- Every source file must begin with **concise, language-standard documentation** describing its **purpose and responsibility**, using the **canonical, tool-supported mechanism** for that language.
-- File-level documentation must be **kept up to date whenever responsibilities change**.
-- Public functions, classes, and non-obvious logic must be documented.
-- Comments should explain **why** something exists or behaves a certain way—**not restate what the code does**.
-- Update relevant documentation files **before merging changes**.
+- Document purpose, contracts, and behavior where they are not obvious, using language-standard documentation mechanisms.
+- Keep affected documentation current, including file-level documentation when responsibilities change. Update relevant documentation before merging.
+- Write comments that explain reasoning rather than restate code.
 
-## Change Integrity & Correctness
+## Git, Review, and Tools
 
-- Always verify assumptions by **reading existing code and documentation**.
-- Do not invent behavior, APIs, or changes beyond what is explicitly requested.
-- Avoid speculative or hypothetical implementations.
-- Ensure changes are correct, safe, and consistent with existing design.
-
-## Git & Commit Hygiene
-
-- Commits must be **logically scoped and atomic**.
-- Commit messages must follow:
-
-```
-
-<type>(<scope>): <message>
-
-```
-
-Examples:
-
-- `fix(auth): correct token expiration handling`
-- `feat(profile): add user profile picture upload`
-
-- Use a commit body to explain **intent, context, and impact** with concise bullet points.
-
-## Review Expectations
-
-- Code reviews focus on **correctness, clarity, scope, security, and maintainability**.
-- Stylistic feedback should be grounded in these standards, not personal preference.
-- If a rule is violated, it must be addressed before merge.
-
-## Tool Usage Tips
-
-- For long-running tools and sub-agents, such as builds and code reviews, wait for a realistic completion interval and avoid repeated polling when no new information is expected.
-
-## Final Guiding Rule
-
-> Leave the code you touched **clearer, safer, and easier to maintain** than you found it—without expanding scope into unrelated work.
+- Keep commits logically scoped and atomic.
+- Use `<type>(<scope>): <message>` for commit messages, such as `fix(auth): correct token expiration handling`.
+- Explain intent, context, and impact in concise commit-body bullets.
+- Ground review feedback in correctness, clarity, scope, security, and maintainability rather than personal preference. Address violations before merging.
+- Allow realistic completion time for long-running tools and sub-agents; avoid repeated polling when no new information is expected.

@@ -17,6 +17,8 @@
 - Verify assumptions against existing code and documentation; do not invent APIs, requirements, or speculative functionality.
 - Remove code made obsolete by your changes. Mention pre-existing dead code separately unless your change directly replaces it.
 - Clean up temporary build directories automatically, including those in `/private/tmp`, or document why they are retained.
+- For Xcode tests, track run-owned simulator clones and clean them up via simulator tooling on EXIT/INT/TERM after tests stop, preserving the exit status. Preserve normal simulators and other sessions' devices; prefer serial testing when sufficient.
+- Before retrying interrupted tests, remove inactive run-owned clones from `~/Library/Developer/XCTestDevices`. Crashes can bypass cleanup traps; report leftover UUIDs and reconcile them on the next run.
 
 ## Code Quality and Security
 
